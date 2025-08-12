@@ -70,7 +70,7 @@ function playMove(srcInst, tgtInst, boardState) {
     tgtInst.svgLayout = [];
     tgtInst.direction = 0;
     tgtInst.dot = false;
-    player.securedTower += 1;
+    player.safetyTower += 1;
   }
   if (
     srcInst.svgLayout.at(-1) === PLAYER_ID.BOT &&
@@ -80,7 +80,7 @@ function playMove(srcInst, tgtInst, boardState) {
     tgtInst.svgLayout = [];
     tgtInst.direction = 0;
     tgtInst.dot = false;
-    player.securedTower += 1;
+    player.safetyTower += 1;
   }
   srcInst.svgLayout = [];
   srcInst.direction = 0;
@@ -223,14 +223,14 @@ function switchPlayer(playerState) {
  * A player wins if:
  * - All opponent towers were conquered
  * - If at least 6 opponent stones are accounted in the vault
- * - If an owning tower in reverse movement is secured in the home zone of the board.
+ * - If an owning tower in reverse movement reached the safety zone of the board.
  *
  * @param {BoardState} boardState - The current state of the game board.
  * @param {Player} player - The player object for whom to check the win condition.
  * @returns {boolean} True if the player has won, otherwise false.
  */
 function checkWin(boardState, player) {
-  if (player.vault.opponent >= 6 || player.securedTower >= 1) {
+  if (player.vault.opponent >= 6 || player.safetyTower >= 1) {
     player.winner = true;
     return true;
   }

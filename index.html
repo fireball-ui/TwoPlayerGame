@@ -35,13 +35,31 @@
               <use href="./images/icons.svg#icon_bot"></use>
             </svg>
           </div>
-          <div class="securedTile">
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
-              <use href="./images/icons.svg#icon_secured"></use>
+          <div class="horizontalMove">
+            <svg
+              class="icon fillColorBot svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_ban"></use>
             </svg>
           </div>
-          <div class="securedTower"></div>
-          <div class="securedDigit">
+          <div class="horizontalMoveLeft">
+            <svg class="icon iconDigit" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_arrow_left"></use>
+            </svg>
+          </div>
+          <div class="horizontalMoveRight">
+            <svg class="icon iconDigit" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_arrow_right"></use>
+            </svg>
+          </div>
+          <div class="safetyTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_shield"></use>
+            </svg>
+          </div>
+          <div class="safetyTower"></div>
+          <div class="safetyDigit">
             <svg
               class="icon iconDigit digit0"
               xmlns="http://www.w3.org/2000/svg"
@@ -143,13 +161,31 @@
               <use href="./images/icons.svg#icon_user"></use>
             </svg>
           </div>
-          <div class="securedTile">
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
-              <use href="./images/icons.svg#icon_secured"></use>
+          <div class="horizontalMove">
+            <svg
+              class="icon fillColorUser svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_ban"></use>
             </svg>
           </div>
-          <div class="securedTower"></div>
-          <div class="securedDigit">
+          <div class="horizontalMoveLeft">
+            <svg class="icon iconDigit" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_arrow_left"></use>
+            </svg>
+          </div>
+          <div class="horizontalMoveRight">
+            <svg class="icon iconDigit" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_arrow_right"></use>
+            </svg>
+          </div>
+          <div class="safetyTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_shield"></use>
+            </svg>
+          </div>
+          <div class="safetyTower"></div>
+          <div class="safetyDigit">
             <svg
               class="icon iconDigit digit0"
               xmlns="http://www.w3.org/2000/svg"
@@ -285,149 +321,248 @@
           </svg>
         </nav>
       </header>
-      <main dir="ltr">
-        <form class="panel panelWin">
-          <p>
-            Adjust the winning rules. A player wins if no more opponent towers
-            are left on the board, or if one of these conditons are fulfilled:
-            <br></br>
-            <br></br>
-          </p>
-          <div class="slider winSlider1">
-            <fieldset>
-              <label for="securedTowers">towers secured from the board</label>
-              <input
-                type="range"
-                id="securedTowers"
-                name="securedTowers"
-                min="1"
-                max="6"
-                value="1"
-              />
-            </fieldset>
-            <output for="securedTowers" class="outputSecuredTowers">1</output>
-          </div>
-          <div class="slider winSlider2">
-            <fieldset>
-              <label for="opponentStones">opponent stones conquered</label>
-              <input
-                type="range"
-                id="opponentStones"
-                name="opponentStones"
-                min="1"
-                max="6"
-                value="1"
-              />
-            </fieldset>
-            <output for="opponentStones" class="outputOpponentStones">1</output>
-          </div>
-        </form>
-        <form class="panel panelSearchDepth">
-          <p>
-            Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
-            algorithm:
-            <br></br>
-            <br></br>
-          </p>
-          <div class="slider searchDepthSlider">
-            <fieldset>
-              <label for="searchDepth">search tree depth</label>
-              <input
-                type="range"
-                id="searchDepth"
-                name="searchDepth"
-                min="1"
-                max="10"
-                value="4"
-              />
-            </fieldset>
-            <output for="searchDepth" class="outputSearchDepth">1</output>
-          </div>
-          <div class="slider searchTimeoutSlider">
-            <fieldset>
-              <label for="searchTimeout">search timeout (secs)</label>
-              <input
-                type="range"
-                id="searchTimeout"
-                name="searchTimeout"
-                min="5"
-                max="20"
-                value="10"
-              />
-            </fieldset>
-            <output for="searchDepth" class="outputSearchTimeout">1</output>
-          </div>
-        </form>
-        <form class="panel panelHeuristic1">
-          <p>
-            Adjust the heuristic score algorithm for the Minimax/Alpha-Beta
-            Pruning evaluation function. The following tiers can be customized
-            on the next pages (see github repo for details):
-            <br></br>
-            <br>material advantage</br> 
-            <br>safety zone proximity</br>
-            <br>conquered advantage</br>
-          </p>
-        </form>
-        <form class="panel panelMaterialAdvantage">
-          <p>
-            Material Advantage
-            <br></br>
-            This weight gets applied to the difference of the number
-            of owning towers between the maximizing player (bot)
-            and the minimizing player (user).
-            <br></br>
-          </p>
-          <div class="slider materialSlider">
-            <fieldset>
-              <label for="materialAdvantageWeight">owning towers weight</label>
-              <input
-                type="range"
-                id="materialAdvantageWeight"
-                name="materialAdvantageWeight"
-                min="0"
-                max="100"
-                step="10"
-                value="10"
-              />
-            </fieldset>
-            <output for="materialAdvantageWeight" class="outputMaterialAdvantageWeight">10</output>
-          </div>
-        </form>
-         <form class="panel panelSafetyZoneProximity">
-          <p>
-            Safety Zone Proximity
-            <br></br>
-            Exact one of these weights gets applied for every tower on the board.
-            A lower distance (row number) to reach the safety zone means a higher score.
-            <br></br>
-          </p>
-          <div class="grid safetyZoneGrid">
-            <a>cell11</a>
-            <a>cell12</a>
-            <a>cell21</a>
-            <a>cell22</a>
-            <a>cell31</a>
-            <a>cell32</a>
-            <a>cell41</a>
-            <a>cell42</a>
-            <a>cell51</a>
-            <a>cell52</a>
-            <a>cell61</a>
-            <a>cell62</a>
-            <a>cell71</a>
-            <a>cell72</a>
-            <a>cell81</a>
-            <a>cell82</a>
-            <a>cell91</a>
-            <a>cell92</a>
-            <a>cell101</a>
-            <a>cell102</a>
-            <a>cell111</a>
-            <a>cell112</a>      
-            
-          </div>
-        </form>
+      <main>
+        <div class="panelContainer">
+          <form class="panel panelWin">
+            <p>
+              Adjust the winning rules. A player wins if no more opponent towers
+              are left on the board, or if one of these conditons are fulfilled:
+              <br />
+              <br />
+            </p>
+            <div class="slider winSlider1">
+              <fieldset>
+                <label for="safetyTowers"
+                  >towers that reached the safety zone</label
+                >
+                <input
+                  type="range"
+                  id="safetyTowers"
+                  name="safetyTowers"
+                  min="1"
+                  max="6"
+                  value="1"
+                />
+              </fieldset>
+              <output for="safetyTowers" class="outputsafetyTowers">1</output>
+            </div>
+            <div class="slider winSlider2">
+              <fieldset>
+                <label for="opponentStones">opponent stones conquered</label>
+                <input
+                  type="range"
+                  id="opponentStones"
+                  name="opponentStones"
+                  min="1"
+                  max="6"
+                  value="1"
+                />
+              </fieldset>
+              <output for="opponentStones" class="outputOpponentStones"
+                >1</output
+              >
+            </div>
+          </form>
+        </div>
+        <div class="panelContainer">
+          <form class="panel panelSearchDepth">
+            <p>
+              Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
+              algorithm:
+              <br />
+              <br />
+            </p>
+            <div class="slider searchDepthSlider">
+              <fieldset>
+                <label for="searchDepth">search tree depth</label>
+                <input
+                  type="range"
+                  id="searchDepth"
+                  name="searchDepth"
+                  min="1"
+                  max="10"
+                  value="4"
+                />
+              </fieldset>
+              <output for="searchDepth" class="outputSearchDepth">1</output>
+            </div>
+            <div class="slider searchTimeoutSlider">
+              <fieldset>
+                <label for="searchTimeout">search timeout (secs)</label>
+                <input
+                  type="range"
+                  id="searchTimeout"
+                  name="searchTimeout"
+                  min="5"
+                  max="20"
+                  value="10"
+                />
+              </fieldset>
+              <output for="searchDepth" class="outputSearchTimeout">1</output>
+            </div>
+          </form>
+        </div>
+        <div class="panelContainer">
+          <form class="panel panelHeuristic1">
+            <p>
+              Adjust the heuristic score algorithm for the Minimax/Alpha-Beta
+              Pruning evaluation function. The following tiers can be customized
+              on the next pages (see github repo for details):
+              <br />
+              <br />material advantage <br />safety zone proximity
+              <br />conquered advantage
+            </p>
+          </form>
+        </div>
+        <div class="panelContainer">
+          <form class="panel panelMaterialAdvantage">
+            <p>
+              Material Advantage
+              <br />
+              <br />
+              This weight gets applied to the difference of the total number of
+              owning towers between the maximizing player (bot) and the
+              minimizing player (user).
+              <br />
+              <br />
+            </p>
+            <div class="slider materialSlider">
+              <fieldset>
+                <label for="materialAdvantageWeight"
+                  >owning towers weight</label
+                >
+                <input
+                  type="range"
+                  id="materialAdvantageWeight"
+                  name="materialAdvantageWeight"
+                  min="0"
+                  max="100"
+                  step="10"
+                  value="40"
+                />
+              </fieldset>
+              <output
+                for="materialAdvantageWeight"
+                class="outputMaterialAdvantageWeight"
+                >40</output
+              >
+            </div>
+          </form>
+        </div>
+        <div class="panelContainer">
+          <form class="panel panelSafetyZoneProximity">
+            <p>
+              Safety Zone Proximity
+              <br />
+              <br />
+              Exactly one of these weights gets applied for every tower on the
+              board in reverse movement. A lower distance (number of rows) to
+              reach the safety zone may imply a higher score.
+              <br />
+              <br />
+            </p>
+            <div class="slider safetyZoneSlider1">
+              <fieldset>
+                <label for="safetyZoneSlider1"
+                  >safety zone distance 1 row left, weight:</label
+                >
+                <input type="range" id="safetyZoneSlider1"
+                name="safetyZoneSlider1" min="0" max="100" step="10" value=100"
+                />
+              </fieldset>
+              <output for="safetyZoneSlider1" class="outputSafetyZoneSlider1"
+                >100</output
+              >
+            </div>
+            <div class="slider safetyZoneSlider2">
+              <fieldset>
+                <label for="safetyZoneSlider2"
+                  >safety zone distance 2 rows left, weight:</label
+                >
+                <input type="range" id="safetyZoneSlider2"
+                name="safetyZoneSlider2" min="0" max="100" step="10" value=90"
+                />
+              </fieldset>
+              <output for="safetyZoneSlider2" class="outputSafetyZoneSlider2"
+                >90</output
+              >
+            </div>
+            <div class="slider safetyZoneSlider3">
+              <fieldset>
+                <label for="safetyZoneSlider3"
+                  >safety zone distance 3 rows left, weight:</label
+                >
+                <input type="range" id="safetyZoneSlider3"
+                name="safetyZoneSlider1" min="0" max="100" step="10" value=50"
+                />
+              </fieldset>
+              <output for="safetyZoneSlider3" class="outputSafetyZoneSlider3"
+                >50</output
+              >
+            </div>
+            <div class="slider safetyZoneSlider4">
+              <fieldset>
+                <label for="safetyZoneSlider4"
+                  >safety zone distance 4 rows left, weight:</label
+                >
+                <input type="range" id="safetyZoneSlider4"
+                name="safetyZoneSlider4" min="0" max="100" step="10" value=30"
+                />
+              </fieldset>
+              <output for="safetyZoneSlider4" class="outputsafetyZoneSlider4"
+                >30</output
+              >
+            </div>
+            <div class="slider safetyZoneSlider5">
+              <fieldset>
+                <label for="safetyZoneSlider5"
+                  >safety zone distance 5 rows left, weight:</label
+                >
+                <input type="range" id="safetyZoneSlider5"
+                name="safetyZoneSlider5" min="0" max="100" step="10" value=10"
+                />
+              </fieldset>
+              <output for="safetyZoneSlider5" class="outputsafetyZoneSlider5"
+                >10</output
+              >
+            </div>
+          </form>
+        </div>
+        <div class="panelContainer">
+          <form class="panel panelConqueringAdvantage">
+            <p>
+              Conquered Advantage
+              <br />
+              <br />
+              This weight gets applied to the difference of the total number of
+              conquered credited opponent stones between the maximizing player
+              (bot) and the minimizing player (user).
+              <br />
+              <br />
+            </p>
+            <div class="slider conqueredSlider">
+              <fieldset>
+                <label for="conqueredAdvantageWeight"
+                  >conquered stones weight</label
+                >
+                <input
+                  type="range"
+                  id="conqueredAdvantageWeight"
+                  name="conqueredAdvantageWeight"
+                  min="0"
+                  max="100"
+                  step="10"
+                  value="30"
+                />
+              </fieldset>
+              <output
+                for="conqueredAdvantageWeight"
+                class="outputConqueredAdvantageWeight"
+                >30</output
+              >
+            </div>
+          </form>
+        </div>
       </main>
     </section>
   </body>

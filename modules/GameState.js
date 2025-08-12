@@ -595,7 +595,7 @@ class BoardState {
       if (savedPlayer) {
         player.turn = savedPlayer.turn;
         player.lastHorizontal = savedPlayer.lastHorizontal;
-        player.securedTower = savedPlayer.securedTower;
+        player.safetyTower = savedPlayer.safetyTower;
         player.vault = { ...savedPlayer.vault };
       }
     });
@@ -629,7 +629,7 @@ class BoardState {
  * @property {boolean} isMaximizing - Indicates if the player is the maximizing player in the game logic.
  * @property {boolean} turn - Indicates if it is currently this player's turn.
  * @property {boolean} lastHorizontal - Indicates if the player's last move was horizontal.
- * @property {number} securedTower - Indicates the number of owning towers the player has secured.
+ * @property {number} safetyTower - Indicates the number of owning towers the player has brought back to safety.
  * @property {PlayerVault} vault - The vault object containing the player's and opponent's vault values.
  * @property {boolean} winner - Player has won the game?
  *
@@ -638,7 +638,7 @@ class BoardState {
  * @param {boolean} [isMaximizing=false] - Indicates if the player is the maximizing player in the game logic.
  * @param {boolean} [turn=false] - Indicates if it is currently this player's turn.
  * @param {boolean} [lastHorizontal=false] - Indicates if the player's last move was horizontal.
- * @param {number} [securedTower=0] - Indicates the number of owning towers the player has secured.
+ * @param {number} [safetyTower=0] - Indicates the number of owning towers the player has brought back to safety.
  * @param {PlayerVault} [vault={ ...NEW_VAULT }] - The vault object containing the player's and opponent's vault values.
  * @param {boolean} [winner=false]
  *
@@ -676,11 +676,11 @@ class Player {
   _lastHorizontal;
 
   /**
-   * Indicates if the player has secured a tower.
+   * Number of towers brought back to the safety zone by this player.
    * @private
    * @type {number}
    */
-  _securedTower;
+  _safetyTower;
 
   /**
    * The vault object containing the player's and opponent's vault values.
@@ -709,7 +709,7 @@ class Player {
       playerPlain._isMaximizing,
       playerPlain._turn,
       playerPlain._lastHorizontal,
-      playerPlain._securedTower,
+      playerPlain._safetyTower,
       { ...playerPlain._vault },
       playerPlain._winner
     );
@@ -721,7 +721,7 @@ class Player {
    * @param {boolean} isMaximizing
    * @param {boolean} turn
    * @param {boolean} lastHorizontal
-   * @param {number} securedTower
+   * @param {number} safetyTower
    * @param {PlayerVault} vault
    */
   constructor(
@@ -729,7 +729,7 @@ class Player {
     isMaximizing = false,
     turn = false,
     lastHorizontal = false,
-    securedTower = 0,
+    safetyTower = 0,
     vault = { ...NEW_VAULT },
     winner = false
   ) {
@@ -740,7 +740,7 @@ class Player {
     this._isMaximizing = isMaximizing;
     this._turn = turn;
     this._lastHorizontal = lastHorizontal;
-    this._securedTower = securedTower;
+    this._safetyTower = safetyTower;
     const selfVal = vault.self;
     const opponentVal = vault.opponent;
     this._vault = { self: selfVal, opponent: opponentVal };
@@ -812,23 +812,23 @@ class Player {
   }
 
   /**
-   * Gets a flag indicating whether this player already secured an owning tower.
+   * Gets the number of towers brought back to the safety zone by this player.
    * @public
    * @type {number}
    * @returns {number}
    * @readonly
    */
-  get securedTower() {
-    return this._securedTower;
+  get safetyTower() {
+    return this._safetyTower;
   }
 
   /**
-   * Sets a flag indicating whether this player already secured an owning tower.
+   * Sets the number of towers brought back to the safety zone by this player.
    * @public
    * @param {boolean} value
    */
-  set securedTower(value) {
-    this._securedTower = value;
+  set safetyTower(value) {
+    this._safetyTower = value;
   }
 
   /**
@@ -885,7 +885,7 @@ class Player {
       this._isMaximizing,
       this._turn,
       this._lastHorizontal,
-      this._securedTower,
+      this._safetyTower,
       { ...this._vault },
       this._winner
     );
@@ -1044,7 +1044,23 @@ class Move {
  * Represents a html sidebar including svg icons reflecting the current player's state graphically.
  *
  * @class
+ * @property {Player} player - The player instance for this sidebar.
+ * @property {HTMLDivElement} container - The html anchor element for this sidebar.
+ * @property {HTMLDivElement} walletId - The html child element for the player's wallet id.
+ * @property {HTMLDivElement} horizontalMove - The html child element indicating the users's lock state for horizontal movement.
+ * @property {SVGSVGElement} svgHorizontalMove - The svg child element icon indicating the users's lock state for horizontal movement.
+ * @property {HTMLDivElement} horizontalMoveLeft - The html child element indicating the users's lock state for horizontal movement.
+ * @property {SVGSVGElement} svgHorizontalMoveLeft - The svg child element icon indicating the users's lock state for horizontal movement.
+ * @property {HTMLDivElement} horizontalMoveRight - The html child element indicating the users's lock state for horizontal movement.
+ * @property {SVGSVGElement} svgHorizontalMoveRight - The svg child element icon indicating the users's lock state for horizontal movement.
+ * @property {HTMLDivElement} safetyTile - The html child element for the background icon of safety tower information.
+ * @property {HTMLDivElement} safetyTower - The html child element for the svg representing the player's tower layout.
+ * @property {HTMLDivElement} safetyDigit - The html child element containing all svg icons representing a digit for the number of safety towers.
+ * @property {HTMLDivElement} vaultTile - The html child element for the background of the player's vault.
+ * @property {HTMLDivElement} vaultOpponent - The html element for the svg representing an opponents stone.
+ * @property {HTMLDivElement} vaultDigit - The html child element containing all svg icons representing a digit for the number of conquered stones.
  *
+ * @throws {TypeError} - On invalid parameter types.
  * @constructor
  * @param {Player} player - The player instance for this sidebar
  * @param {HTMLDivElement} container - The parent container or anchor html element.
@@ -1067,7 +1083,7 @@ class Sidebar {
   _container;
 
   /**
-   * The parent container html element and sidebar anchor.
+   * The html child element for the player's theme background.
    * @private
    * @type {HTMLDivElement}
    * @readonly
@@ -1075,12 +1091,60 @@ class Sidebar {
   _walletId;
 
   /**
-   * The html child element for the background icon of secured tower information.
+   * The html child element indicating the users's lock state for horizontal movement.
    * @private
    * @type {HTMLDivElement}
    * @readonly
    */
-  _securedTile;
+  _horizontalMove;
+
+  /**
+   * The html child element icon indicating the users's lock state for horizontal movement.
+   * @private
+   * @type {SVGSVGElement}
+   * @readonly
+   */
+  _svgHorizontalMove;
+
+  /**
+   * The html child element indicating the users's lock state for horizontal movement.
+   * @private
+   * @type {HTMLDivElement}
+   * @readonly
+   */
+  _horizontalMoveLeft;
+
+  /**
+   * The html child element icon indicating the users's lock state for horizontal movement.
+   * @private
+   * @type {SVGSVGElement}
+   * @readonly
+   */
+  _svgHorizontalMoveLeft;
+
+  /**
+   * The html child element indicating the users's lock state for horizontal movement.
+   * @private
+   * @type {HTMLDivElement}
+   * @readonly
+   */
+  _horizontalMoveRight;
+
+  /**
+   * The html child element icon indicating the users's lock state for horizontal movement.
+   * @private
+   * @type {SVGSVGElement}
+   * @readonly
+   */
+  _svgHorizontalMoveRight;
+
+  /**
+   * The html child element for the background icon of safety tower information.
+   * @private
+   * @type {HTMLDivElement}
+   * @readonly
+   */
+  _safetyTile;
 
   /**
    * The html child element for the svg representing the player's tower layout
@@ -1088,15 +1152,15 @@ class Sidebar {
    * @type {HTMLDivElement}
    * @readonly
    */
-  _securedTower;
+  _safetyTower;
 
   /**
-   * The html child element containing all svg icons representing a digit for the number of secured towers
+   * The html child element containing all svg icons representing a digit for the number of towers brought back to safety.
    * @private
    * @type {HTMLDivElement}
    * @readonly
    */
-  _securedDigit;
+  _safetyDigit;
 
   /**
    * The html child element for the background of the player's vault.
@@ -1155,14 +1219,23 @@ class Sidebar {
             case "walletId":
               this._walletId = divElem;
               break;
-            case "securedTile":
-              this._securedTile = divElem;
+            case "horizontalMove":
+              this._horizontalMove = divElem;
               break;
-            case "securedTower":
-              this._securedTower = divElem;
+            case "horizontalMoveLeft":
+              this._horizontalMoveLeft = divElem;
               break;
-            case "securedDigit":
-              this._securedDigit = divElem;
+            case "horizontalMoveRight":
+              this._horizontalMoveRight = divElem;
+              break;
+            case "safetyTile":
+              this._safetyTile = divElem;
+              break;
+            case "safetyTower":
+              this._safetyTower = divElem;
+              break;
+            case "safetyDigit":
+              this._safetyDigit = divElem;
               break;
             case "vaultTile":
               this._vaultTile = divElem;
@@ -1178,14 +1251,26 @@ class Sidebar {
       });
       if (
         !this._walletId ||
-        !this._securedTile ||
-        !this._securedTower ||
-        !this._securedDigit ||
+        !this._safetyTile ||
+        !this._safetyTower ||
+        !this._safetyDigit ||
         !this._vaultTile ||
         !this._vaultOpponent ||
         !this._vaultDigit
       ) {
         throw new Error("invalid div element for sidebar");
+      }
+      this._svgHorizontalMove = this._horizontalMove.querySelector("svg");
+      this._svgHorizontalMoveLeft =
+        this._horizontalMoveLeft.querySelector("svg");
+      this._svgHorizontalMoveRight =
+        this._horizontalMoveRight.querySelector("svg");
+      if (
+        !this._svgHorizontalMove ||
+        !this._svgHorizontalMoveLeft ||
+        !this._svgHorizontalMoveRight
+      ) {
+        throw new Error("invalid svg element for sidebar");
       }
       Sidebar.playerMap.set(this._player, this);
     } catch (error) {
@@ -1206,11 +1291,26 @@ class Sidebar {
     let name = `.digit${this._player.vault.opponent}`;
     this._vaultDigit.querySelector(name).classList.remove("svgHide");
 
-    Array.from(this._securedDigit.children).forEach((svgElem) => {
+    Array.from(this._safetyDigit.children).forEach((svgElem) => {
       svgElem.classList.add("svgHide");
     });
-    name = `.digit${this._player.securedTower}`;
-    this._securedDigit.querySelector(name).classList.remove("svgHide");
+    name = `.digit${this._player.safetyTower}`;
+    this._safetyDigit.querySelector(name).classList.remove("svgHide");
+
+    if (this._player.lastHorizontal === true) {
+      this._svgHorizontalMove.classList.remove("svgHide");
+      this._svgHorizontalMoveLeft.classList.remove("iconDigit");
+      this._svgHorizontalMoveLeft.classList.add("filterGray");
+      this._svgHorizontalMoveRight.classList.remove("iconDigit");
+      this._svgHorizontalMoveRight.classList.add("filterGray");
+    } else {
+      this._svgHorizontalMove.classList.add("svgHide");
+      this._svgHorizontalMoveLeft.classList.remove("filterGray");
+      this._svgHorizontalMoveLeft.classList.add("iconDigit");
+      this._svgHorizontalMoveRight.classList.remove("filterGray");
+      this._svgHorizontalMoveRight.classList.add("iconDigit");
+    }
+
     if (this._player.winner === true) {
       this._container.classList.add("winnerSidebar");
     } else {

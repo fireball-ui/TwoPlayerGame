@@ -245,7 +245,7 @@ function resetGame(domBoardState) {
       player.turn = true;
     }
     player.lastHorizontal = false;
-    player.securedTower = 0;
+    player.safetyTower = 0;
     player.vault.self = 0;
     player.vault.opponent = 0;
     player.winner = false;
@@ -410,7 +410,7 @@ function initBoardEventHandlers(domBoard, domBoardState, worker, navbar) {
     const markedCell = domBoardState.mapDomElement.get(
       document.querySelector(".mark")
     );
-    // Play move, update BoardState and turn player
+    // Play move, update BoardState, update Sidebar and turn player
     domBoardState.applyMoveAndTurn(markedCell, clickedCell);
     disableBoardEvents(domBoardState);
     discardBoardAnimations();
