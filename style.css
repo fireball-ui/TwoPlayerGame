@@ -302,13 +302,15 @@ main {
   height: 70vh;
   height: 70dvh;
   display: flex;
-  overflow: scroll;
+  overflow-x: scroll;
   scroll-snap-type: x mandatory;
+  scroll-snap-stop: always;
   border-style: none;
 }
 .panel {
   flex: 0 0 100%;
-  width: 90%;
+  width: 100%;
+  height: 100%;
   scroll-snap-align: center;
   display: flex;
   flex-direction: column;
@@ -324,6 +326,10 @@ main {
     var(--light-tile-color2),
     var(--dark-tile-color2)
   );
+}
+.panel > p,
+.panel > p > br {
+  text-align: center;
 }
 .slider {
   display: flex;
@@ -350,8 +356,7 @@ main {
   min-width: 0;
   width: 90%;
 }
-.tierOverviewSlider > ul {
-  display: flex;
-  flex-direction: column;
-  justify-content: start;
+.panel > .grid {
+  display: grid;
+  grid-template-columns: 1fr 5fr;
 }

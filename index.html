@@ -280,6 +280,9 @@
           <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
             <use href="./images/icons.svg#icon_recycle"></use>
           </svg>
+          <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+            <use href="./images/icons.svg#icon_github"></use>
+          </svg>
         </nav>
       </header>
       <main dir="ltr">
@@ -287,6 +290,8 @@
           <p>
             Adjust the winning rules. A player wins if no more opponent towers
             are left on the board, or if one of these conditons are fulfilled:
+            <br></br>
+            <br></br>
           </p>
           <div class="slider winSlider1">
             <fieldset>
@@ -321,6 +326,8 @@
           <p>
             Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
             algorithm:
+            <br></br>
+            <br></br>
           </p>
           <div class="slider searchDepthSlider">
             <fieldset>
@@ -338,7 +345,7 @@
           </div>
           <div class="slider searchTimeoutSlider">
             <fieldset>
-              <label for="searchTimeout">search timeout</label>
+              <label for="searchTimeout">search timeout (secs)</label>
               <input
                 type="range"
                 id="searchTimeout"
@@ -355,7 +362,7 @@
           <p>
             Adjust the heuristic score algorithm for the Minimax/Alpha-Beta
             Pruning evaluation function. The following tiers can be customized
-            on the next pages: 
+            on the next pages (see github repo for details):
             <br></br>
             <br>material advantage</br> 
             <br>safety zone proximity</br>
@@ -365,13 +372,15 @@
         <form class="panel panelMaterialAdvantage">
           <p>
             Material Advantage
-            <br>This weight gets applied to difference of the number</br>
-            <br>of owning towers between the maximizing player (bot)</br>
-            <br>and the minimizing player (user).</br>
+            <br></br>
+            This weight gets applied to the difference of the number
+            of owning towers between the maximizing player (bot)
+            and the minimizing player (user).
+            <br></br>
           </p>
-          <div class="slider materialAdvantageWeightSlider">
+          <div class="slider materialSlider">
             <fieldset>
-              <label for="materialAdvantageWeight">search tree depth</label>
+              <label for="materialAdvantageWeight">owning towers weight</label>
               <input
                 type="range"
                 id="materialAdvantageWeight"
@@ -382,7 +391,41 @@
                 value="10"
               />
             </fieldset>
-            <output for="materialAdvantageWeight" class="outputmaterialAdvantageWeight">10</output>
+            <output for="materialAdvantageWeight" class="outputMaterialAdvantageWeight">10</output>
+          </div>
+        </form>
+         <form class="panel panelSafetyZoneProximity">
+          <p>
+            Safety Zone Proximity
+            <br></br>
+            Exact one of these weights gets applied for every tower on the board.
+            A lower distance (row number) to reach the safety zone means a higher score.
+            <br></br>
+          </p>
+          <div class="grid safetyZoneGrid">
+            <a>cell11</a>
+            <a>cell12</a>
+            <a>cell21</a>
+            <a>cell22</a>
+            <a>cell31</a>
+            <a>cell32</a>
+            <a>cell41</a>
+            <a>cell42</a>
+            <a>cell51</a>
+            <a>cell52</a>
+            <a>cell61</a>
+            <a>cell62</a>
+            <a>cell71</a>
+            <a>cell72</a>
+            <a>cell81</a>
+            <a>cell82</a>
+            <a>cell91</a>
+            <a>cell92</a>
+            <a>cell101</a>
+            <a>cell102</a>
+            <a>cell111</a>
+            <a>cell112</a>      
+            
           </div>
         </form>
       </main>
