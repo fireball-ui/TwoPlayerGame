@@ -1,3 +1,7 @@
+#JSDoc generated files
+docs/
+jsdoc/
+
 # Logs
 logs
 *.log

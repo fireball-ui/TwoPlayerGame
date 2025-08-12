@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Stack</title>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="main.js" defer type="module"></script>
+  </head>
+  <body>
+    <section id="sectHome">
+      <div class="wrapper">
+        <div class="navbar">
+          <div class="navbarRestart">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_restart"></use>
+            </svg>
+          </div>
+          <div class="navbarSettings">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_settings"></use>
+            </svg>
+          </div>
+          <div class="navbarDatabase">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_database"></use>
+            </svg>
+          </div>
+        </div>
+        <div class="sidebar sidebarBot">
+          <div class="walletId">
+            <svg class="icon fillColorBot" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_bot"></use>
+            </svg>
+          </div>
+          <div class="securedTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_secured"></use>
+            </svg>
+          </div>
+          <div class="securedTower"></div>
+          <div class="securedDigit">
+            <svg
+              class="icon iconDigit digit0"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_0"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit1 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_1"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit2 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_2"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit3 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_3"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit4 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_4"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit5 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_5"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit6 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_6"></use>
+            </svg>
+          </div>
+          <div class="vaultTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_vault"></use>
+            </svg>
+          </div>
+          <div class="vaultOpponent"></div>
+          <div class="vaultDigit">
+            <svg
+              class="icon iconDigit digit0"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_0"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit1 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_1"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit2 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_2"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit3 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_3"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit4 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_4"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit5 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_5"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit6 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_6"></use>
+            </svg>
+          </div>
+        </div>
+        <div class="board" id="board"></div>
+        <div class="sidebar sidebarUser">
+          <div class="walletId">
+            <svg class="icon fillColorUser" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_user"></use>
+            </svg>
+          </div>
+          <div class="securedTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_secured"></use>
+            </svg>
+          </div>
+          <div class="securedTower"></div>
+          <div class="securedDigit">
+            <svg
+              class="icon iconDigit digit0"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_0"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit1 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_1"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit2 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_2"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit3 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_3"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit4 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_4"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit5 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_5"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit6 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_6"></use>
+            </svg>
+          </div>
+          <div class="vaultTile">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_vault"></use>
+            </svg>
+          </div>
+          <div class="vaultOpponent"></div>
+          <div class="vaultDigit">
+            <svg
+              class="icon iconDigit digit0"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_0"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit1 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_1"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit2 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_2"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit3 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_3"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit4 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_4"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit5 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_5"></use>
+            </svg>
+            <svg
+              class="icon iconDigit digit6 svgHide"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="./images/icons.svg#icon_digit_6"></use>
+            </svg>
+          </div>
+        </div>
+        <div class="CSSloadSpinner"></div>
+        <div class="footer">
+          <div class="footerGithub">
+            <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_github"></use>
+            </svg>
+          </div>
+          <div class="footerThemeLight">
+            <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_themeLight"></use>
+            </svg>
+            <input type="radio" name="theme" class="radioThemeLight" />
+          </div>
+          <div class="footerThemeDark">
+            <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_themeDark"></use>
+            </svg>
+            <input type="radio" name="theme" class="radioThemeDark" />
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="sectSettings">
+      <header>
+        <nav>
+          <a href="#sectHome">
+            <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+              <use href="./images/icons.svg#icon_back"></use>
+            </svg>
+          </a>
+          <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+            <use href="./images/icons.svg#icon_save"></use>
+          </svg>
+          <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+            <use href="./images/icons.svg#icon_recycle"></use>
+          </svg>
+        </nav>
+      </header>
+      <main dir="ltr">
+        <form class="panel panelWin">
+          <p>
+            Adjust the winning rules. A player wins if no more opponent towers
+            are left on the board, or if one of these conditons are fulfilled:
+          </p>
+          <div class="slider winSlider1">
+            <fieldset>
+              <label for="securedTowers">towers secured from the board</label>
+              <input
+                type="range"
+                id="securedTowers"
+                name="securedTowers"
+                min="1"
+                max="6"
+                value="1"
+              />
+            </fieldset>
+            <output for="securedTowers" class="outputSecuredTowers">1</output>
+          </div>
+          <div class="slider winSlider2">
+            <fieldset>
+              <label for="opponentStones">opponent stones conquered</label>
+              <input
+                type="range"
+                id="opponentStones"
+                name="opponentStones"
+                min="1"
+                max="6"
+                value="1"
+              />
+            </fieldset>
+            <output for="opponentStones" class="outputOpponentStones">1</output>
+          </div>
+        </form>
+        <form class="panel panelSearchDepth">
+          <p>
+            Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
+            algorithm:
+          </p>
+          <div class="slider searchDepthSlider">
+            <fieldset>
+              <label for="searchDepth">search tree depth</label>
+              <input
+                type="range"
+                id="searchDepth"
+                name="searchDepth"
+                min="1"
+                max="10"
+                value="4"
+              />
+            </fieldset>
+            <output for="searchDepth" class="outputSearchDepth">1</output>
+          </div>
+          <div class="slider searchTimeoutSlider">
+            <fieldset>
+              <label for="searchTimeout">search timeout</label>
+              <input
+                type="range"
+                id="searchTimeout"
+                name="searchTimeout"
+                min="5"
+                max="20"
+                value="10"
+              />
+            </fieldset>
+            <output for="searchDepth" class="outputSearchTimeout">1</output>
+          </div>
+        </form>
+        <form class="panel panelHeuristic1">
+          <p>
+            Adjust the heuristic score algorithm for the Minimax/Alpha-Beta
+            Pruning evaluation function. The following tiers can be customized
+            on the next pages: 
+            <br></br>
+            <br>material advantage</br> 
+            <br>safety zone proximity</br>
+            <br>conquered advantage</br>
+          </p>
+        </form>
+      </main>
+    </section>
+  </body>
+</html>
