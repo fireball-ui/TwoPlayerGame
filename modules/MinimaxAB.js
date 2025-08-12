@@ -1,10 +1,5 @@
 /**
  * @module MinimaxAB
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This module implements the Minimax algorithm with Alpha-Beta Pruning.
  * It is used by the spawned Web Worker to find the best move for the bot AI opponent.
  * @property {number} max_search_depth - The maximum search depth for the Minimax algorithm.

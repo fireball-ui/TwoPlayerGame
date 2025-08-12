@@ -1,11 +1,6 @@
 /**
  * @module SvgRender
  * @file js/modules/SvgRender.js
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This module provides functions to create SVG elements for rendering a tower,
  * which is a piece on the board that changes its layout at gameplay.
  * It includes functions to create circles and a complete SVG structure for visual representations.

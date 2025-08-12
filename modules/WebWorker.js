@@ -1,10 +1,5 @@
 /**
  * @module WebWorker
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This module is executed in a Web Worker context. It handles
  * the AI decision-making process using an algorithm specified from the request message data.
  * Currently, Minimax with Alpha-Beta pruning is the only option.

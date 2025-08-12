@@ -1,10 +1,5 @@
 /**
  * @module main
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This main module is the primary entry point when the web page is served and the DOM content is loaded.
  * It initializes the game board, sets up event handlers for user interactions,
  * and manages the GameState including player turns and move execution.

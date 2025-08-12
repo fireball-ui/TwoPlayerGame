@@ -1,10 +1,5 @@
 /**
  * @module GameState
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This module provides classes that represent the state of the board, its cells, both players and
  * the moves made during the game. It includes the GridCell class for individual cells, BoardState for the overall board state,
  * Player for player-specific state, PlayerState for managing multiple players, and Move for representing a move in the game.

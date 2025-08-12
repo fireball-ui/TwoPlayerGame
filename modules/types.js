@@ -1,10 +1,5 @@
 /**
  * @module types
- * @copyright 2025-06-29 Magnus Dümke
- * @license MIT
- * @author Magnus Dümke
- * @version 1.0.0
- * @since 2025-06-29
  * @description This module defines types used in the TowerHunt game, including the Vault type.
  */
 
