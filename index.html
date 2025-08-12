@@ -362,6 +362,29 @@
             <br>conquered advantage</br>
           </p>
         </form>
+        <form class="panel panelMaterialAdvantage">
+          <p>
+            Material Advantage
+            <br>This weight gets applied to difference of the number</br>
+            <br>of owning towers between the maximizing player (bot)</br>
+            <br>and the minimizing player (user).</br>
+          </p>
+          <div class="slider materialAdvantageWeightSlider">
+            <fieldset>
+              <label for="materialAdvantageWeight">search tree depth</label>
+              <input
+                type="range"
+                id="materialAdvantageWeight"
+                name="materialAdvantageWeight"
+                min="0"
+                max="100"
+                step="10"
+                value="10"
+              />
+            </fieldset>
+            <output for="materialAdvantageWeight" class="outputmaterialAdvantageWeight">10</output>
+          </div>
+        </form>
       </main>
     </section>
   </body>
