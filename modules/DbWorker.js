@@ -121,7 +121,7 @@ async function open() {
       await storeXact(
         Settings.objStoreName,
         "put",
-        Settings.factoryMaterialAdvantageAccounted
+        Settings.factoryMaterialAdvantageConquered
       );
       await storeXact(
         Settings.objStoreName,
