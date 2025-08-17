@@ -230,6 +230,7 @@ class GridCell {
    * Sets the current metadata for the tower (piece) representation on the board.
    * Each array element represents a stone put on top of the tower for some past moves.
    * @public
+   * @type {Array<string>}
    * @param {Array<string>} value - The updated svgLayout for a new move
    */
   set svgLayout(value) {

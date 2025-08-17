@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light dark;
+  &:has(input[name="theme"][class="radioThemeDark"]:checked) {
+    color-scheme: dark;
+  }
+  &:has(input[name="theme"][class="radioThemeLight"]:checked) {
+    color-scheme: light;
+  }
+  /* @link https://utopia.fyi/clamp/calculator?a=360,1240,16—28 */
+  --text-size: clamp(1rem, 0.6932rem + 1.3636vw, 1.75rem);
+  --dark-bg-color: #2e2e2e;
+  --dark-bot-color: #fb8c00;
+  --dark-user-color: #ec407a;
+  --dark-dot-color: #2e2e2e;
+  --dark-tile-color1: #90a4ae;
+  --dark-tile-color2: #616161;
+  --dark-icon-color: #e0e0e0;
+  --dark-digit-color: #e0e0e0;
+  --light-bg-color: #ffffff;
+  --light-bot-color: blue;
+  --light-user-color: red;
+  --light-dot-color: black;
+  --light-tile-color1: brown;
+  --light-tile-color2: lab(89.54% -17.11 -3.99);
+  --light-icon-color: gray;
+  --light-digit-color: gray;
+}
+html,
+body {
+  background-color: light-dark(var(--light-bg-color), var(--dark-bg-color));
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  width: 100dvw;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: var(--text-size);
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-items: center;
+  align-items: center;
+}
+* {
+  padding: inherit;
+  box-sizing: inherit;
+  overflow: inherit;
+  font: inherit;
+  overflow-wrap: inherit;
+  word-break: inherit;
+}
+.tileColor1 {
+  background-color: light-dark(
+    var(--light-tile-color1),
+    var(--dark-tile-color1)
+  );
+}
+.tileColor2 {
+  background-color: light-dark(
+    var(--light-tile-color2),
+    var(--dark-tile-color2)
+  );
+}

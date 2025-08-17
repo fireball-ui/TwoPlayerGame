@@ -1,0 +1,19 @@
+/* animating the next move on the game board */
+.boardCell.hover,
+.boardCell.click {
+  background-color: violet;
+}
+.boardCell.select,
+.boardCell.mark {
+  background-color: lightblue;
+}
+/* highlite the winner's sidebar */
+.winnerSidebar {
+  background-color: gold;
+  background-blend-mode: exclusion;
+  opacity: 1;
+}
+/* grey out the game board when the game has finished */
+.filterGray {
+  filter: grayscale(80%);
+}

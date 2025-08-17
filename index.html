@@ -6,8 +6,13 @@
     <title>Tower Stack</title>
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-    <link rel="stylesheet" href="style.css" />
-    <script src="main.js" defer type="module"></script>
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/boardGrid.css" />
+    <link rel="stylesheet" href="./styles/settingsContainer.css" />
+    <link rel="stylesheet" href="./styles/icons.css" />
+    <link rel="stylesheet" href="./styles/boardAnimations.css" />
+    <link rel="stylesheet" href="./styles/sameOriginTransitions.css" />
+    <script src="./main.js" defer type="module"></script>
   </head>
   <body>
     <section id="sectHome">
@@ -310,10 +315,10 @@
               <use href="./images/icons.svg#icon_back"></use>
             </svg>
           </a>
-          <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+          <svg class="icon2 iconSave" xmlns="http://www.w3.org/2000/svg">
             <use href="./images/icons.svg#icon_save"></use>
           </svg>
-          <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
+          <svg class="icon2 iconRecycle" xmlns="http://www.w3.org/2000/svg">
             <use href="./images/icons.svg#icon_recycle"></use>
           </svg>
           <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
@@ -323,14 +328,14 @@
       </header>
       <main>
         <div class="panelContainer">
-          <form class="panel panelWin">
+          <form class="panel">
             <p>
               Adjust the winning rules. A player wins if no more opponent towers
               are left on the board, or if one of these conditons are fulfilled:
               <br />
               <br />
             </p>
-            <div class="slider winSlider1">
+            <div class="slider">
               <fieldset>
                 <label for="safetyTowers"
                   >towers that reached the safety zone</label
@@ -341,12 +346,11 @@
                   name="safetyTowers"
                   min="1"
                   max="6"
-                  value="1"
                 />
               </fieldset>
-              <output for="safetyTowers" class="outputsafetyTowers">1</output>
+              <output for="safetyTowers"></output>
             </div>
-            <div class="slider winSlider2">
+            <div class="slider">
               <fieldset>
                 <label for="opponentStones">opponent stones conquered</label>
                 <input
@@ -355,24 +359,21 @@
                   name="opponentStones"
                   min="1"
                   max="6"
-                  value="1"
                 />
               </fieldset>
-              <output for="opponentStones" class="outputOpponentStones"
-                >1</output
-              >
+              <output for="opponentStones"></output>
             </div>
           </form>
         </div>
         <div class="panelContainer">
-          <form class="panel panelSearchDepth">
+          <form class="panel">
             <p>
               Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
               algorithm:
               <br />
               <br />
             </p>
-            <div class="slider searchDepthSlider">
+            <div class="slider">
               <fieldset>
                 <label for="searchDepth">search tree depth</label>
                 <input
@@ -381,43 +382,41 @@
                   name="searchDepth"
                   min="1"
                   max="10"
-                  value="4"
                 />
               </fieldset>
-              <output for="searchDepth" class="outputSearchDepth">1</output>
+              <output for="searchDepth"></output>
             </div>
-            <div class="slider searchTimeoutSlider">
+            <div class="slider">
               <fieldset>
                 <label for="searchTimeout">search timeout (secs)</label>
                 <input
                   type="range"
                   id="searchTimeout"
                   name="searchTimeout"
-                  min="5"
+                  min="1"
                   max="20"
-                  value="10"
                 />
               </fieldset>
-              <output for="searchDepth" class="outputSearchTimeout">1</output>
+              <output for="searchTimeout"></output>
             </div>
           </form>
         </div>
         <div class="panelContainer">
-          <form class="panel panelHeuristic1">
+          <form class="panel">
             <p>
               Adjust the heuristic score algorithm for the Minimax/Alpha-Beta
               Pruning evaluation function. The following tiers can be customized
               on the next pages (see github repo for details):
               <br />
-              <br />material advantage <br />safety zone proximity
-              <br />conquered advantage
+              <br />conquered material advantage <br />safety zone proximity
+              <br />accounted material advantage
             </p>
           </form>
         </div>
         <div class="panelContainer">
-          <form class="panel panelMaterialAdvantage">
+          <form class="panel">
             <p>
-              Material Advantage
+              Conquered Material Advantage
               <br />
               <br />
               This weight gets applied to the difference of the total number of
@@ -426,31 +425,26 @@
               <br />
               <br />
             </p>
-            <div class="slider materialSlider">
+            <div class="slider">
               <fieldset>
-                <label for="materialAdvantageWeight"
+                <label for="materialAdvantageConquered"
                   >owning towers weight</label
                 >
                 <input
                   type="range"
-                  id="materialAdvantageWeight"
-                  name="materialAdvantageWeight"
+                  id="materialAdvantageConquered"
+                  name="materialAdvantageConquered"
                   min="0"
                   max="100"
                   step="10"
-                  value="40"
                 />
               </fieldset>
-              <output
-                for="materialAdvantageWeight"
-                class="outputMaterialAdvantageWeight"
-                >40</output
-              >
+              <output for="materialAdvantageConquered"></output>
             </div>
           </form>
         </div>
         <div class="panelContainer">
-          <form class="panel panelSafetyZoneProximity">
+          <form class="panel">
             <p>
               Safety Zone Proximity
               <br />
@@ -461,77 +455,101 @@
               <br />
               <br />
             </p>
-            <div class="slider safetyZoneSlider1">
+            <div class="slider">
               <fieldset>
-                <label for="safetyZoneSlider1"
+                <label for="safetyZone1"
                   >safety zone distance 1 row left, weight:</label
                 >
-                <input type="range" id="safetyZoneSlider1"
-                name="safetyZoneSlider1" min="0" max="100" step="10" value=100"
+                <input
+                  type="range"
+                  id="safetyZone1"
+                  name="safetyZone1"
+                  min="0"
+                  max="10"
                 />
               </fieldset>
-              <output for="safetyZoneSlider1" class="outputSafetyZoneSlider1"
-                >100</output
-              >
+              <output for="safetyZone1"></output>
             </div>
-            <div class="slider safetyZoneSlider2">
+            <div class="slider">
               <fieldset>
-                <label for="safetyZoneSlider2"
+                <label for="safetyZone2"
                   >safety zone distance 2 rows left, weight:</label
                 >
-                <input type="range" id="safetyZoneSlider2"
-                name="safetyZoneSlider2" min="0" max="100" step="10" value=90"
+                <input
+                  type="range"
+                  id="safetyZone2"
+                  name="safetyZone2"
+                  min="0"
+                  max="10"
                 />
               </fieldset>
-              <output for="safetyZoneSlider2" class="outputSafetyZoneSlider2"
-                >90</output
-              >
+              <output for="safetyZone2"></output>
             </div>
-            <div class="slider safetyZoneSlider3">
+            <div class="slider">
               <fieldset>
-                <label for="safetyZoneSlider3"
+                <label for="safetyZone3"
                   >safety zone distance 3 rows left, weight:</label
                 >
-                <input type="range" id="safetyZoneSlider3"
-                name="safetyZoneSlider1" min="0" max="100" step="10" value=50"
+                <input
+                  type="range"
+                  id="safetyZone3"
+                  name="safetyZone3"
+                  min="0"
+                  max="10"
                 />
               </fieldset>
-              <output for="safetyZoneSlider3" class="outputSafetyZoneSlider3"
-                >50</output
-              >
+              <output for="safetyZone3"></output>
             </div>
-            <div class="slider safetyZoneSlider4">
+            <div class="slider">
               <fieldset>
-                <label for="safetyZoneSlider4"
+                <label for="safetyZone4"
                   >safety zone distance 4 rows left, weight:</label
                 >
-                <input type="range" id="safetyZoneSlider4"
-                name="safetyZoneSlider4" min="0" max="100" step="10" value=30"
+                <input
+                  type="range"
+                  id="safetyZone4"
+                  name="safetyZone4"
+                  min="0"
+                  max="10"
                 />
               </fieldset>
-              <output for="safetyZoneSlider4" class="outputsafetyZoneSlider4"
-                >30</output
-              >
+              <output for="safetyZone4"></output>
             </div>
-            <div class="slider safetyZoneSlider5">
+            <div class="slider">
               <fieldset>
-                <label for="safetyZoneSlider5"
+                <label for="safetyZone5"
                   >safety zone distance 5 rows left, weight:</label
                 >
-                <input type="range" id="safetyZoneSlider5"
-                name="safetyZoneSlider5" min="0" max="100" step="10" value=10"
+                <input
+                  type="range"
+                  id="safetyZone5"
+                  name="safetyZone5"
+                  min="0"
+                  max="10"
                 />
               </fieldset>
-              <output for="safetyZoneSlider5" class="outputsafetyZoneSlider5"
-                >10</output
-              >
+              <output for="safetyZone5"></output>
+            </div>
+            <div class="slider">
+              <fieldset>
+                <label for="safetyZoneTotalWeight">total weight:</label>
+                <input
+                  type="range"
+                  id="safetyZoneTotalWeight"
+                  name="safetyZoneTotalWeight"
+                  min="0"
+                  max="100"
+                  step="10"
+                />
+              </fieldset>
+              <output for="safetyZoneTotalWeight"></output>
             </div>
           </form>
         </div>
         <div class="panelContainer">
-          <form class="panel panelConqueringAdvantage">
+          <form class="panel">
             <p>
-              Conquered Advantage
+              Accounted Material Advantage
               <br />
               <br />
               This weight gets applied to the difference of the total number of
@@ -540,26 +558,21 @@
               <br />
               <br />
             </p>
-            <div class="slider conqueredSlider">
+            <div class="slider">
               <fieldset>
-                <label for="conqueredAdvantageWeight"
+                <label for="materialAdvantageAccounted"
                   >conquered stones weight</label
                 >
                 <input
                   type="range"
-                  id="conqueredAdvantageWeight"
-                  name="conqueredAdvantageWeight"
+                  id="materialAdvantageAccounted"
+                  name="materialAdvantageAccounted"
                   min="0"
                   max="100"
                   step="10"
-                  value="30"
                 />
               </fieldset>
-              <output
-                for="conqueredAdvantageWeight"
-                class="outputConqueredAdvantageWeight"
-                >30</output
-              >
+              <output for="materialAdvantageAccounted"></output>
             </div>
           </form>
         </div>

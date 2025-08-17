@@ -11,6 +11,8 @@
  * @requires module:GameLogic
  * @requires module:MinimaxAB
  * @requires module:SvgRender
+ * @requires module:AsyncWorkerAPI
+ * @requires module:ConfigState
  */
 
 import {
@@ -23,6 +25,11 @@ import {
 } from "./modules/GameState.js";
 import { getLocalMoves, checkWin } from "./modules/GameLogic.js";
 import { createSvgTowerVector } from "./modules/SvgRender.js";
+import {
+  dispatchWorker,
+  workerMessageScheme,
+} from "./modules/AsyncWorkerAPI.js";
+import { Settings } from "./modules/ConfigState.js";
 
 /**
  * Creates a game board by generating a grid of cells, initializing their state,
@@ -285,71 +292,34 @@ function resetGame(domBoardState) {
 }
 
 /**
- * Enable all UI events for the next move after the AI processing of the spawned Web Worker.
- * @param {Worker} worker
+ * Handle UI logic after the database worker has sent a message,
+ * either for logging the current game state or for saving game settings customization.
+ * @param {Worker} dbWorker
  * @param {BoardState} domBoardState
  * @returns {void}
  */
-function initWorkerHandler(worker, domBoardState) {
-  worker.addEventListener("message", (event) => {
-    let srcCellId = event.data[0]._id;
-    let tgtCellId = event.data[1]._id;
-    srcCellId ??= null;
-    tgtCellId ??= null;
-    if (
-      srcCellId === null ||
-      tgtCellId === null ||
-      isNaN(srcCellId) ||
-      isNaN(tgtCellId)
-    ) {
-      throw new Error(
-        "Invalid move data received from worker. Expected two integers for the source and target cell identifiers."
-      );
-    }
-    let moveBotSrcInst = domBoardState.cells.find(
-      (cell) => cell.id === srcCellId
-    );
-    moveBotSrcInst ??= null;
-    let moveBotTgtInst = domBoardState.cells.find(
-      (cell) => cell.id === tgtCellId
-    );
-    moveBotTgtInst ??= null;
-    if (
-      moveBotSrcInst === null ||
-      moveBotTgtInst === null ||
-      !moveBotSrcInst instanceof GridCell ||
-      !moveBotTgtInst instanceof GridCell
-    ) {
-      throw new Error(
-        "Invalid move data received from worker. Invalid integer identifier for the source or target cell."
-      );
-    }
-    domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
-    const player = domBoardState.playerState.twoPlayer.find(
-      (player) => player.turn === false
-    );
-    Sidebar.playerMap.get(player).refreshDashboard();
-    domBoardState.waitForWebWorker = false;
-    if (checkWin(domBoardState, player)) {
-      document.querySelector(".board").classList.add("filterGray");
-      Sidebar.playerMap.get(player).refreshDashboard();
-    } else {
-      // Enable board events for the next move
-      enableBoardEvents(domBoardState);
+function initDbWorkerHandler(dbWorker) {
+  dbWorker.addEventListener("message", (event) => {
+    if (event.data.error === true) {
+      throw new Error("Error in dbWorker: " + event.data);
     }
   });
+  dbWorker.addEventListener("error", (event) => {
+    throw new Error(
+      "Uncaught error in dbWorker: " + event.error + " " + event.message
+    );
+  });
 }
-
 /**
  * Initializes event handlers for the game board, enabling interactive cell selection,
  * highlighting, and move execution for both (player and bot).
  *
  * @param {HTMLElement} domBoard - The DOM element representing the game board.
  * @param {BoardState} domBoardState - The initialized board state containing all cells and player information.
- * @param {Worker} worker - The spawned Web Worker instance that handles AI logic.
+ * @param {Worker} aiWorker - The spawned Web Worker instance that handles AI logic.
  * @returns {void}
  */
-function initBoardEventHandlers(domBoard, domBoardState, worker, navbar) {
+function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
   domBoard.addEventListener("mouseover", (event) => {
     const currentPlayer = domBoardState.playerState.twoPlayer.find(
       (player) => player.turn === true
@@ -390,7 +360,7 @@ function initBoardEventHandlers(domBoard, domBoardState, worker, navbar) {
     handleHoveredCellOut();
   });
 
-  domBoard.addEventListener("click", function (event) {
+  domBoard.addEventListener("click", async (event) => {
     // Return if this event is not fired for playing a new move
     let clickedCell = domBoardState.mapDomElement.get(
       event.target.closest(".boardCell")
@@ -425,7 +395,58 @@ function initBoardEventHandlers(domBoard, domBoardState, worker, navbar) {
     } else {
       // Dispatch worker for AI processing
       domBoardState.waitForWebWorker = true;
-      worker.postMessage(domBoardState.cloneInstance());
+      const aiWorkerRequest = structuredClone(workerMessageScheme);
+      aiWorkerRequest.request.type = "findBestMove";
+      aiWorkerRequest.request.parameter.push(domBoardState.cloneInstance());
+      const aiWorkerResponse = await dispatchWorker(aiWorker, aiWorkerRequest);
+      if (aiWorkerResponse.response.error === true) {
+        throw new Error(
+          "Caught error in ai worker: " + aiWorkerResponse.response.message
+        );
+      }
+      let srcCellId = aiWorkerResponse.response.message[0]._id ?? null;
+      let tgtCellId = aiWorkerResponse.response.message[1]._id ?? null;
+      if (
+        srcCellId === null ||
+        tgtCellId === null ||
+        isNaN(srcCellId) ||
+        isNaN(tgtCellId)
+      ) {
+        throw new Error(
+          "Invalid move data received from worker. Expected two integers for the source and target cell identifiers."
+        );
+      }
+      let moveBotSrcInst = domBoardState.cells.find(
+        (cell) => cell.id === srcCellId
+      );
+      moveBotSrcInst ??= null;
+      let moveBotTgtInst = domBoardState.cells.find(
+        (cell) => cell.id === tgtCellId
+      );
+      moveBotTgtInst ??= null;
+      if (
+        moveBotSrcInst === null ||
+        moveBotTgtInst === null ||
+        !moveBotSrcInst instanceof GridCell ||
+        !moveBotTgtInst instanceof GridCell
+      ) {
+        throw new Error(
+          "Invalid move data received from worker. Invalid integer identifier for the source or target cell."
+        );
+      }
+      domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
+      const player = domBoardState.playerState.twoPlayer.find(
+        (player) => player.turn === false
+      );
+      Sidebar.playerMap.get(player).refreshDashboard();
+      domBoardState.waitForWebWorker = false;
+      if (checkWin(domBoardState, player)) {
+        document.querySelector(".board").classList.add("filterGray");
+        Sidebar.playerMap.get(player).refreshDashboard();
+      } else {
+        // Enable board events for the next move
+        enableBoardEvents(domBoardState);
+      }
     }
   });
 }
@@ -465,44 +486,219 @@ function initNavbarEventHandlers(domBoardState, navbar) {
 }
 
 /**
- * Initializes event handlers for each same origin section fragment targeted by the navbar.
- *
+ * Initializes all input range values from the Settings object store in the database.
+ * @param {Array<HTMLInputElement>} inputs - All html input range elements from the settings section
+ * @param {Array<HTMLOutputElement>} outputs - All html output elements from the settings section
  * @returns {void}
  */
-function initSectionEventHandlers() {}
+async function initRangeSlidersFromDb(settings, inputs, outputs) {
+  try {
+    inputs.forEach((input, index) => {
+      switch (input.id) {
+        case "safetyTowers":
+          input.value = settings.winningRules.settings.safetyZone;
+          break;
+        case "opponentStones":
+          input.value = settings.winningRules.settings.materialOpponent;
+          break;
+        case "searchDepth":
+          input.value = settings.searchRules.settings.depth;
+          break;
+        case "searchTimeout":
+          input.value = settings.searchRules.settings.timeout;
+          break;
+        case "materialAdvantageConquered":
+          input.value =
+            settings.materialAdvantageConquered.settings.totalWeight;
+          break;
+        case "safetyZone1":
+          input.value =
+            settings.safetyZoneProximity.settings.weightRowDistance1;
+          break;
+        case "safetyZone2":
+          input.value =
+            settings.safetyZoneProximity.settings.weightRowDistance2;
+          break;
+        case "safetyZone3":
+          input.value =
+            settings.safetyZoneProximity.settings.weightRowDistance3;
+          break;
+        case "safetyZone4":
+          input.value =
+            settings.safetyZoneProximity.settings.weightRowDistance4;
+          break;
+        case "safetyZone5":
+          input.value =
+            settings.safetyZoneProximity.settings.weightRowDistance5;
+          break;
+        case "safetyZoneTotalWeight":
+          input.value = settings.safetyZoneProximity.settings.totalWeight;
+          break;
+        case "materialAdvantageAccounted":
+          input.value =
+            settings.materialAdvantageAccounted.settings.totalWeight;
+          break;
+        default:
+          throw new Error("unknown input element");
+      }
+      outputs.at(index).textContent = input.value;
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+/**
+ * This function:
+ * - Initially loads the persistent settings from the database and updates all input values.
+ * - Adds an event handler delegator for the input event inside this html section.
+ * This event handler simply updates the text context of the output element,
+ * whenver the input value changes for a specific range slider.
+ * - Adds an event handler delegator for the click event inside this hmtl section.
+ * By clicking on the save icon, the properties of the settings instance are updated and
+ * all input values are saved to the database.
+ * By clicking on the recycle icon, the factory defualt settings are restored
+ * for the database and all properties of the settings instance.
+ *
+ * @param {Settings} settings - The Worker instance handling the db operations.
+ * @returns {void}
+ */
+async function initSectionSettings(settings) {
+  try {
+    /* load settings from database and init all range slider values */
+    await settings.load();
+    const domSettings = document.getElementById("sectSettings");
+    const inputs = Array.from(domSettings.getElementsByTagName("input"));
+    const outputs = Array.from(domSettings.getElementsByTagName("output"));
+    initRangeSlidersFromDb(settings, inputs, outputs);
+    domSettings.addEventListener("input", (event) => {
+      try {
+        const form = event.target.closest(".panel");
+        const inputs = Array.from(form.getElementsByTagName("input"));
+        const outputs = Array.from(form.getElementsByTagName("output"));
+        inputs.forEach((input, index) => {
+          outputs.at(index).textContent = input.value;
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    });
+    domSettings.addEventListener("click", async (event) => {
+      try {
+        const navIcon = event.target.closest("svg");
+        if (
+          !navIcon ||
+          (!navIcon.classList.contains("iconSave") &&
+            !navIcon.classList.contains("iconRecycle"))
+        ) {
+          return;
+        }
+        if (navIcon.classList.contains("iconSave")) {
+          const inputs = Array.from(domSettings.getElementsByTagName("input"));
+          inputs.forEach((input, _) => {
+            switch (input.id) {
+              case "safetyTowers":
+                settings.winningRules.settings.safetyZone = input.value;
+                break;
+              case "opponentStones":
+                settings.winningRules.settings.materialOpponent = input.value;
+                break;
+              case "searchDepth":
+                settings.searchRules.settings.depth = input.value;
+                break;
+              case "searchTimeout":
+                settings.searchRules.settings.timeout = input.value;
+                break;
+              case "materialAdvantageConquered":
+                settings.materialAdvantageConquered.settings.totalWeight =
+                  input.value;
+                break;
+              case "safetyZone1":
+                settings.safetyZoneProximity.settings.weightRowDistance1 =
+                  input.value;
+                break;
+              case "safetyZone2":
+                settings.safetyZoneProximity.settings.weightRowDistance2 =
+                  input.value;
+                break;
+              case "safetyZone3":
+                settings.safetyZoneProximity.settings.weightRowDistance3 =
+                  input.value;
+                break;
+              case "safetyZone4":
+                settings.safetyZoneProximity.settings.weightRowDistance4 =
+                  input.value;
+                break;
+              case "safetyZone5":
+                settings.safetyZoneProximity.settings.weightRowDistance5 =
+                  input.value;
+                break;
+              case "safetyZoneTotalWeight":
+                settings.safetyZoneProximity.settings.totalWeight = input.value;
+                break;
+              case "materialAdvantageAccounted":
+                settings.materialAdvantageAccounted.settings.totalWeight =
+                  input.value;
+                break;
+              default:
+                throw new Error("unknown input element");
+            }
+          });
+          await settings.save();
+        }
+        if (navIcon.classList.contains("iconRecycle")) {
+          await settings.restoreFactoryDefault();
+          initRangeSlidersFromDb(settings, inputs, outputs);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
 
 /**
  * Main entry point for the game.
  */
-window.addEventListener(
-  "DOMContentLoaded",
-  /* async */ () => {
-    try {
-      window.location.hash = "#sectHome";
-      if (!window.Worker) {
-        throw new Error(
-          "Web Workers are not supported in this browser. Please use a modern browser."
-        );
-      }
-      GridCell.svgTowerVector = createSvgTowerVector();
-      const domBoard = document.getElementById("board");
-      const domBoardState = createBoard(board, 6);
-      const navbar = document.querySelector(".navbar");
-      const bot = domBoardState.playerState.twoPlayer.find(
-        (player) => player.id === PLAYER_ID.BOT
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    window.location.hash = "#sectHome";
+    if (!window.Worker) {
+      throw new Error(
+        "Web Workers are not supported in this browser. Please use a modern browser."
       );
-      const user = domBoardState.playerState.twoPlayer.find(
-        (player) => player.id === PLAYER_ID.USER
-      );
-      /* await */ createSidebar(bot, document.querySelector(".sidebarBot"));
-      /* await */ createSidebar(user, document.querySelector(".sidebarUser"));
-      const worker = new Worker("./modules/WebWorker.js", { type: "module" });
-      initWorkerHandler(worker, domBoardState);
-      initBoardEventHandlers(domBoard, domBoardState, worker);
-      initNavbarEventHandlers(domBoardState, navbar);
-      initSectionEventHandlers();
-    } catch (error) {
-      console.error(error);
     }
+    GridCell.svgTowerVector = createSvgTowerVector();
+    const domBoard = document.getElementById("board");
+    const domBoardState = createBoard(board, 6);
+    const navbar = document.querySelector(".navbar");
+    const bot = domBoardState.playerState.twoPlayer.find(
+      (player) => player.id === PLAYER_ID.BOT
+    );
+    const user = domBoardState.playerState.twoPlayer.find(
+      (player) => player.id === PLAYER_ID.USER
+    );
+    createSidebar(bot, document.querySelector(".sidebarBot"));
+    createSidebar(user, document.querySelector(".sidebarUser"));
+    const aiWorker = new Worker("./modules/AiWorker.js", { type: "module" });
+    const dbWorker = new Worker("./modules/DbWorker.js", { type: "module" });
+    //open IndexedDB database
+    const dbWorkerRequest = structuredClone(workerMessageScheme);
+    dbWorkerRequest.request.type = "open";
+    const dbWorkerResponse = await dispatchWorker(dbWorker, dbWorkerRequest);
+    if (dbWorkerResponse.response.error === true) {
+      throw new Error(
+        "Caught error in db worker for open database request: " +
+          dbWorkerResponse.response.message
+      );
+    }
+    initBoardEventHandlers(domBoard, domBoardState, aiWorker);
+    initNavbarEventHandlers(domBoardState, navbar);
+    const settings = new Settings(dbWorker);
+    initSectionSettings(settings);
+  } catch (error) {
+    console.error(error);
   }
-);
+});
