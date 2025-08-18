@@ -1,40 +1,9 @@
-/* @supports (view-transition-name: none) {
-  ::view-transition-old(root) {
-    animation: move-out 1s cubic-bezier(0.4, 0, 1, 1);
-  }
-  ::view-transition-new(root) {
-    animation: move-in 1s cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  @keyframes move-out {
-    from {
-      transform: translateX(0%);
-      opacity: 1;
-    }
-    to {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-  }
-  @keyframes move-in {
-    from {
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0%);
-      opacity: 1;
-    }
-  }
-} */
-
-/* @supports (not (view-transition-name: none)) { */
 section:not(:target) {
   display: none;
 }
 section:target {
   display: block;
-  animation: appear 3s;
+  animation: appear 2s;
 }
 @keyframes appear {
   from {
@@ -44,4 +13,3 @@ section:target {
     opacity: 1;
   }
 }
-/* } */

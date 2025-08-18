@@ -28,6 +28,7 @@ import { createSvgTowerVector } from "./modules/SvgRender.js";
 import {
   dispatchWorker,
   workerMessageScheme,
+  cssTransitionEnded,
 } from "./modules/AsyncWorkerAPI.js";
 import { Settings } from "./modules/ConfigState.js";
 
@@ -434,7 +435,14 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
           "Invalid move data received from worker. Invalid integer identifier for the source or target cell."
         );
       }
+      // trigger animations for this bot's move and wait for the end of the css transitions
+      await cssTransitionEnded(moveBotSrcInst.domEl, "select");
+      await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
+      // apply move
       domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
+      // remove css classes for cleanup and animation of this bot's move
+      moveBotSrcInst.domEl.classList.remove("select");
+      moveBotTgtInst.domEl.classList.remove("hover");
       const player = domBoardState.playerState.twoPlayer.find(
         (player) => player.turn === false
       );

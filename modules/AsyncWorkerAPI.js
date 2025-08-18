@@ -26,4 +26,32 @@ async function dispatchWorker(worker, message) {
   });
 }
 
-export { dispatchWorker, workerMessageScheme };
+async function cssTransitionEnded(domElement, cssClass) {
+  return new Promise((resolve, reject) => {
+    const transitionEndEventHandler = function (event) {
+      domElement.removeEventListener(event.type, transitionEndEventHandler);
+      if (event.propertyName === "background-color") {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            "CSS transition of an unexpected property - " +
+              JSON.stringify(event)
+          )
+        );
+      }
+    };
+    const transitionCancelEventHandler = function (event) {
+      domElement.removeEventListener(event.type, transitionCancelEventHandler);
+      reject("transition canceled: " + JSON.stringify(event));
+    };
+    domElement.addEventListener("transitionend", transitionEndEventHandler);
+    domElement.addEventListener(
+      "transitioncancel",
+      transitionCancelEventHandler
+    );
+    domElement.classList.add(cssClass);
+  });
+}
+
+export { dispatchWorker, workerMessageScheme, cssTransitionEnded };

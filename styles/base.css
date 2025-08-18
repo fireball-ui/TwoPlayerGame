@@ -16,14 +16,18 @@
   --dark-tile-color2: #616161;
   --dark-icon-color: #e0e0e0;
   --dark-digit-color: #e0e0e0;
-  --light-bg-color: #ffffff;
+  --dark-boardCell-hover: #6acaec;
+  --dark-boardCell-select: #6773e4;
+  --light-bg-color: #f6ddbb;
   --light-bot-color: blue;
   --light-user-color: red;
   --light-dot-color: black;
-  --light-tile-color1: brown;
-  --light-tile-color2: lab(89.54% -17.11 -3.99);
+  --light-tile-color1: #d5d1ae;
+  --light-tile-color2: #a69c6f;
   --light-icon-color: gray;
   --light-digit-color: gray;
+  --dark-boardCell-hover: #6acaec;
+  --dark-boardCell-select: #6773e4;
 }
 html,
 body {
