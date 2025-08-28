@@ -701,7 +701,7 @@ async function initSectionSettings(settings) {
 /**
  * Main entry point for the game.
  */
-window.addEventListener("DOMContentLoaded", async () => {
+window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
   try {
     window.location.hash = "#sectHome";
     if (!window.Worker) {
