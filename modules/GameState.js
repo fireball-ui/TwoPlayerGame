@@ -1,8 +1,11 @@
 /**
  * @module GameState
- * @description This module provides classes that represent the state of the board, its cells, both players and
- * the moves made during the game. It includes the GridCell class for individual cells, BoardState for the overall board state,
- * Player for player-specific state, PlayerState for managing multiple players, and Move for representing a move in the game.
+ * @description This module provides classes that represent the state of the board,
+ * its cells, both players, the sidebars and the moves made during the game.
+ * It includes the GridCell class for individual cells, BoardState for the overall board state,
+ * Player for player-specific state, PlayerState for managing multiple players,
+ * Sidebar for visualizing each current player's state
+ * and Move for representing and logging a move in the game.
  * @requires module:GameLogic
  * @requires module:types
  * @property {Object} PLAYER_ID - An immutable object containing primitive unique identifiers for both players.
@@ -12,6 +15,7 @@
  * @exports Player - Represents a player in the game, encapsulating player-specific state and actions.
  * @exports PlayerState - Represents the state of players in the game, managing an array of Player instances.
  * @exports Move - Represents a move in the game, including the source cell, target cell, and the player's state.
+ * @exports Sidebar - Visualizing each player's state.
  */
 
 import { playMove, switchPlayer } from "./GameLogic.js";
@@ -103,12 +107,6 @@ class GridCell {
   _dot;
 
   /**
-   * @static
-   * @type {SVGElement}
-   */
-  static svgTowerVector = null; // will be initialized on DOMContentLoaded handled in main.js
-
-  /**
    * Deserializes a plain object sent to the web worker and returns
    * the corresponding GridCell instance.
    * @static
@@ -120,6 +118,7 @@ class GridCell {
       cellPlain._row,
       cellPlain._column,
       false,
+      null,
       [...cellPlain._svgLayout],
       cellPlain._direction,
       cellPlain._dot
@@ -141,6 +140,7 @@ class GridCell {
     row,
     column,
     domRelation = false,
+    domEl = null,
     svgLayout = [],
     direction = 0,
     dot = false
@@ -153,9 +153,7 @@ class GridCell {
     this._direction = direction;
     this._dot = dot;
     if (this._domRelation === true) {
-      this._domEl = document.createElement("div");
-      this.addClass("boardCell");
-      this._domEl.appendChild(GridCell.svgTowerVector.cloneNode(true)); // Clone the static SVG template
+      this._domEl = domEl;
     } else {
       this._domEl = null;
     }
@@ -318,24 +316,19 @@ class GridCell {
     if (this.domRelation === false || this._domEl === null) {
       return;
     }
-    let svgElements = this._domEl.querySelectorAll(".svgTower");
-    if (svgElements.length === 0) {
-      throw new Error("No SVG elements found in the GridCell.");
-    }
-    svgElements.forEach((el) => el.classList.add("svgHide")); // Hide all SVG elements initially
+    let svgLayoutString;
     if (this._svgLayout.length === 0) {
-      return; // If svgLayout is empty, do not show any SVG elements
+      svgLayoutString = "none";
+    } else {
+      svgLayoutString = this._svgLayout.join("_");
+      if (this._dot === true) {
+        svgLayoutString += "_dot";
+      }
     }
-    let svgLayoutString = this._svgLayout.join("_");
-    if (this._dot === true) {
-      svgLayoutString += "_dot";
-    }
-    const cssSelector = `.tower_${svgLayoutString}`;
-    const svgVisibleElement = this._domEl.querySelector(cssSelector);
-    if (!svgVisibleElement) {
-      throw new Error(`SVG element with selector ${cssSelector} not found.`);
-    }
-    svgVisibleElement.classList.remove("svgHide");
+    const svgSymbol = `tower_${svgLayoutString}`;
+    this.domEl
+      .querySelector("use")
+      .setAttribute("href", `./images/pieces.svg#${svgSymbol}`);
   }
 
   /**
@@ -347,6 +340,7 @@ class GridCell {
       this._row,
       this._column,
       false,
+      null,
       [...this._svgLayout],
       this._direction,
       this._dot
@@ -1313,9 +1307,15 @@ class Sidebar {
     }
 
     if (this._player.winner === true) {
-      this._container.classList.add("winnerSidebar");
+      //this._container.classList.add("winnerSidebar");
+      this._horizontalMove.classList.add("winnerSidebar");
+      this._safetyTile.classList.add("winnerSidebar");
+      this._vaultTile.classList.add("winnerSidebar");
     } else {
-      this._container.classList.remove("winnerSidebar");
+      //this._container.classList.remove("winnerSidebar");
+      this._horizontalMove.classList.remove("winnerSidebar");
+      this._safetyTile.classList.remove("winnerSidebar");
+      this._vaultTile.classList.remove("winnerSidebar");
     }
   }
 }

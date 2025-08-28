@@ -227,10 +227,14 @@ function switchPlayer(playerState) {
  *
  * @param {BoardState} boardState - The current state of the game board.
  * @param {Player} player - The player object for whom to check the win condition.
+ * @param {Settings} settings - The current saved configuration.
  * @returns {boolean} True if the player has won, otherwise false.
  */
-function checkWin(boardState, player) {
-  if (player.vault.opponent >= 6 || player.safetyTower >= 1) {
+function checkWin(boardState, player, settings) {
+  if (
+    player.vault.opponent >= settings.winningRules.settings.materialOpponent ||
+    player.safetyTower >= settings.winningRules.settings.safetyZone
+  ) {
     player.winner = true;
     return true;
   }

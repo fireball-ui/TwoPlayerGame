@@ -1,5 +1,5 @@
 /* ********************************************************************************* */
-/* Animations for the next move on the game board.                                   */
+/* Transitions for the next move on the game board.                                   */
 /* ********************************************************************************* */
 .boardCell.hover,
 .boardCell.click {
@@ -10,18 +10,15 @@
   background-color: lightblue;
 }
 /* ********************************************************************************* */
-/* highlite the winner's sidebar                                                     */
-/* ********************************************************************************* */
-.winnerSidebar {
-  background-color: gold;
-  background-blend-mode: exclusion;
-  opacity: 1;
-}
-/* ********************************************************************************* */
-/* Transform the game board and pieces to grayscale when the game has finished.      */
+/* Transform the game board and pieces to grayscale and golden the winning sidebar   */
+/* when the game has finished.                                                       */
 /* ********************************************************************************* */
 .filterGray {
   filter: grayscale(80%);
+}
+.winnerSidebar {
+  background-color: gold;
+  filter: brightness(2);
 }
 /* ********************************************************************************* */
 /* Start transitioning these color-related properties for all html elements.         */
@@ -29,8 +26,36 @@
 /* only starts whenever the checked state gets toggled for the input radio elements. */
 /* ********************************************************************************* */
 * {
-  transition-property: background-color, fill, stroke;
-  transition-duration: 0.5s;
+  transition-property: background-color, fill, stroke, filter;
+  transition-duration: 0.8s;
   transition-timing-function: linear;
-  transition-delay: 0.1s;
+  /*transition-delay: 0.1s;*/
+}
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.2);
+    opacity: 0.4;
+  }
+}
+.spinner1 {
+  animation: pulse 1s infinite alternate 0ms;
+}
+.spinner2 {
+  animation: pulse 1s infinite alternate 200ms;
+}
+.spinner3 {
+  animation: pulse 1s infinite alternate 400ms;
+}
+.spinner4 {
+  animation: pulse 1s infinite alternate 600ms;
+}
+.spinner5 {
+  animation: pulse 1s infinite alternate 800ms;
+}
+.spinner6 {
+  animation: pulse 1s infinite alternate 1000ms;
 }

@@ -7,7 +7,7 @@
  */
 
 import { Settings } from "./ConfigState.js";
-import { workerMessageScheme } from "./AsyncWorkerAPI.js";
+import { workerMessageScheme } from "./AsyncAPIWrapper.js";
 import { ReplayLogger } from "./Logger.js";
 
 const idbFactory = self.indexedDB ?? null;
@@ -36,28 +36,23 @@ async function storeXact(objStoreName, method, parm = null) {
           throw new Error("Invalid method: " + method);
       }
       request.addEventListener("success", (event) => {
-        //resolve(event.target.result);
         requestResult = event.target.result;
       });
       request.addEventListener("error", (event) => {
         reject(new Error(event.target.error));
-        console.log("error in operation: " + event.target.error);
       });
       xact.addEventListener("complete", () => {
         resolve(requestResult);
       });
       xact.addEventListener("error", (event) => {
         reject(new Error(event.target.error));
-        console.log("error in xact: " + event.target.error);
       });
       xact.addEventListener("abort", (event) => {
         reject(new Error(event.target.error));
-        console.log("error in xact: " + event.target.error);
       });
       xact.commit();
     } catch (error) {
-      console.log(error);
-      reject(new Error("Error in xact: " + error));
+      reject(new Error("Error in xact: " + error.toString()));
     }
   });
 }
@@ -89,7 +84,6 @@ async function openDb() {
         throw new Error("Error opening IndexedDB:", event.target.error);
       });
     } catch (error) {
-      console.log(error);
       reject(new Error("Error opening database: " + error.message));
     }
   });
@@ -136,7 +130,6 @@ async function open() {
       initFromScratch = false;
     }
   } catch (error) {
-    console.log(error);
     throw new Error("Error in open db: " + error);
   }
 }
@@ -183,4 +176,8 @@ self.addEventListener("message", async (event) => {
     response.response.message = error;
     self.postMessage(response);
   }
+});
+
+self.addEventListener("error", (event) => {
+  console.log(error.toString());
 });

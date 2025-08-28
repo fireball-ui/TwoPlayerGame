@@ -1,11 +1,11 @@
 /**
  * @module Logger
  * @description ToDo...
- * @requires module:AsyncWorkerAPI
+ * @requires module:AsyncAPIWrapper
  * @exports Logger - ToDo...
  */
 
-import { dispatchWorker, workerMessageScheme } from "./AsyncWorkerAPI.js";
+import { dispatchWorker, workerMessageScheme } from "./AsyncAPIWrapper.js";
 
 /**
  * ToDo...

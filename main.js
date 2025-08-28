@@ -10,11 +10,9 @@
  * @requires module:GameState
  * @requires module:GameLogic
  * @requires module:MinimaxAB
- * @requires module:SvgRender
- * @requires module:AsyncWorkerAPI
+ * @requires module:AsyncAPIWrapper
  * @requires module:ConfigState
  */
-
 import {
   GridCell,
   BoardState,
@@ -24,12 +22,11 @@ import {
   Sidebar,
 } from "./modules/GameState.js";
 import { getLocalMoves, checkWin } from "./modules/GameLogic.js";
-import { createSvgTowerVector } from "./modules/SvgRender.js";
 import {
   dispatchWorker,
   workerMessageScheme,
   cssTransitionEnded,
-} from "./modules/AsyncWorkerAPI.js";
+} from "./modules/AsyncAPIWrapper.js";
 import { Settings } from "./modules/ConfigState.js";
 
 /**
@@ -40,27 +37,14 @@ import { Settings } from "./modules/ConfigState.js";
  * @returns {BoardState} The initialized board state containing all cells.
  * @throws {Error} If the parameters is invalid.
  */
-function createBoard(board) {
-  if (!board || !(board instanceof HTMLElement)) {
-    throw new Error(
-      "Invalid parameters: CSS grid container and board size are required."
-    );
-  }
+function createBoard(domBoard) {
   const cells = [];
-  const fragment = document.createDocumentFragment();
-  // Create the board using a document fragment for better performance
-  for (let i = 0; i < 6; i++) {
-    for (let j = 0; j < 6; j++) {
-      const cell = new GridCell(i, j, true);
-      cells.push(cell);
-      fragment.appendChild(cell.domEl);
-      if ((i + j) % 2 === 0) {
-        cell.addClass("tileColor1");
-      } else {
-        cell.addClass("tileColor2");
-      }
-    }
-  }
+  Array.from(domBoard.children).forEach((domCell, index) => {
+    const column = index % 6;
+    const row = Math.round((index - column) / 6);
+    const cell = new GridCell(row, column, true, domCell);
+    cells.push(cell);
+  });
   const domBoardState = new BoardState(
     cells,
     createPlayer(),
@@ -96,8 +80,6 @@ function createBoard(board) {
       cell.direction = -1;
       cell.updateSvg();
     });
-  // Append the fragment to the board
-  board.appendChild(fragment);
   return domBoardState;
 }
 
@@ -158,7 +140,7 @@ function handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer) {
  *
  * @returns {void}
  */
-function handleHoveredCellOut() {
+function handleHoveredCellOut(domBoardState) {
   document.querySelectorAll(".hover, .select").forEach((cell) => {
     cell.classList.remove("hover", "select");
   });
@@ -320,7 +302,7 @@ function initDbWorkerHandler(dbWorker) {
  * @param {Worker} aiWorker - The spawned Web Worker instance that handles AI logic.
  * @returns {void}
  */
-function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
+function initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings) {
   domBoard.addEventListener("mouseover", (event) => {
     const currentPlayer = domBoardState.playerState.twoPlayer.find(
       (player) => player.turn === true
@@ -334,7 +316,8 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
       hoveredCell === null ||
       !hoveredCell instanceof GridCell ||
       hoveredCell.svgLayout.length === 0 ||
-      hoveredCell.svgLayout.at(-1) !== currentPlayer.id
+      hoveredCell.svgLayout.at(-1) !== currentPlayer.id ||
+      hoveredCell.domEl.classList.contains("select")
     ) {
       return;
     }
@@ -358,7 +341,7 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
     ) {
       return;
     }
-    handleHoveredCellOut();
+    handleHoveredCellOut(domBoardState);
   });
 
   domBoard.addEventListener("click", async (event) => {
@@ -390,21 +373,31 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
     );
     Sidebar.playerMap.get(player).refreshDashboard();
     // interactive player has won?
-    if (checkWin(domBoardState, player)) {
+    if (checkWin(domBoardState, player, settings)) {
       document.querySelector(".board").classList.add("filterGray");
       Sidebar.playerMap.get(player).refreshDashboard();
     } else {
+      //animate css load spinner
+      document.querySelectorAll(".CSSloadSpinner g").forEach((svgGelement) => {
+        svgGelement.classList.remove("svgHide");
+      });
       // Dispatch worker for AI processing
       domBoardState.waitForWebWorker = true;
       const aiWorkerRequest = structuredClone(workerMessageScheme);
       aiWorkerRequest.request.type = "findBestMove";
       aiWorkerRequest.request.parameter.push(domBoardState.cloneInstance());
-      const aiWorkerResponse = await dispatchWorker(aiWorker, aiWorkerRequest);
+      aiWorkerRequest.request.parameter.push(settings.cloneInstance());
+      const aiWorkerResponse = await dispatchWorker(
+        aiWorker,
+        aiWorkerRequest,
+        settings.searchRules.settings.timeout * 1000
+      );
       if (aiWorkerResponse.response.error === true) {
         throw new Error(
           "Caught error in ai worker: " + aiWorkerResponse.response.message
         );
       }
+
       let srcCellId = aiWorkerResponse.response.message[0]._id ?? null;
       let tgtCellId = aiWorkerResponse.response.message[1]._id ?? null;
       if (
@@ -435,6 +428,10 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
           "Invalid move data received from worker. Invalid integer identifier for the source or target cell."
         );
       }
+      //hide css load spinner
+      document.querySelectorAll(".CSSloadSpinner g").forEach((svgGelement) => {
+        svgGelement.classList.add("svgHide");
+      });
       // trigger animations for this bot's move and wait for the end of the css transitions
       await cssTransitionEnded(moveBotSrcInst.domEl, "select");
       await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
@@ -448,7 +445,7 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, navbar) {
       );
       Sidebar.playerMap.get(player).refreshDashboard();
       domBoardState.waitForWebWorker = false;
-      if (checkWin(domBoardState, player)) {
+      if (checkWin(domBoardState, player, settings)) {
         document.querySelector(".board").classList.add("filterGray");
         Sidebar.playerMap.get(player).refreshDashboard();
       } else {
@@ -504,47 +501,56 @@ async function initRangeSlidersFromDb(settings, inputs, outputs) {
     inputs.forEach((input, index) => {
       switch (input.id) {
         case "safetyTowers":
-          input.value = settings.winningRules.settings.safetyZone;
+          input.value = String(settings.winningRules.settings.safetyZone);
           break;
         case "opponentStones":
-          input.value = settings.winningRules.settings.materialOpponent;
+          input.value = String(settings.winningRules.settings.materialOpponent);
           break;
         case "searchDepth":
-          input.value = settings.searchRules.settings.depth;
+          input.value = String(settings.searchRules.settings.depth);
           break;
         case "searchTimeout":
-          input.value = settings.searchRules.settings.timeout;
+          input.value = String(settings.searchRules.settings.timeout);
           break;
         case "materialAdvantageConquered":
-          input.value =
-            settings.materialAdvantageConquered.settings.totalWeight;
+          input.value = String(
+            settings.materialAdvantageConquered.settings.totalWeight
+          );
           break;
         case "safetyZone1":
-          input.value =
-            settings.safetyZoneProximity.settings.weightRowDistance1;
+          input.value = String(
+            settings.safetyZoneProximity.settings.weightRowDistance1
+          );
           break;
         case "safetyZone2":
-          input.value =
-            settings.safetyZoneProximity.settings.weightRowDistance2;
+          input.value = String(
+            settings.safetyZoneProximity.settings.weightRowDistance2
+          );
           break;
         case "safetyZone3":
-          input.value =
-            settings.safetyZoneProximity.settings.weightRowDistance3;
+          input.value = String(
+            settings.safetyZoneProximity.settings.weightRowDistance3
+          );
           break;
         case "safetyZone4":
-          input.value =
-            settings.safetyZoneProximity.settings.weightRowDistance4;
+          input.value = String(
+            settings.safetyZoneProximity.settings.weightRowDistance4
+          );
           break;
         case "safetyZone5":
-          input.value =
-            settings.safetyZoneProximity.settings.weightRowDistance5;
+          input.value = String(
+            settings.safetyZoneProximity.settings.weightRowDistance5
+          );
           break;
         case "safetyZoneTotalWeight":
-          input.value = settings.safetyZoneProximity.settings.totalWeight;
+          input.value = String(
+            settings.safetyZoneProximity.settings.totalWeight
+          );
           break;
         case "materialAdvantageAccounted":
-          input.value =
-            settings.materialAdvantageAccounted.settings.totalWeight;
+          input.value = String(
+            settings.materialAdvantageAccounted.settings.totalWeight
+          );
           break;
         default:
           throw new Error("unknown input element");
@@ -603,55 +609,80 @@ async function initSectionSettings(settings) {
         }
         if (navIcon.classList.contains("iconSave")) {
           const inputs = Array.from(domSettings.getElementsByTagName("input"));
+          const newWinningRules = structuredClone(Settings.factoryWinningRules);
+          const newSearchRules = structuredClone(Settings.factorySearchRules);
+          const newMaterialAdvantageConquered = structuredClone(
+            Settings.factoryMaterialAdvantageConquered
+          );
+          const newSafetyZoneProximity = structuredClone(
+            Settings.factorySafetyZoneProximity
+          );
+          const newMaterialAdvantageAccounted = structuredClone(
+            Settings.factoryMaterialAdvantageAccounted
+          );
           inputs.forEach((input, _) => {
             switch (input.id) {
               case "safetyTowers":
-                settings.winningRules.settings.safetyZone = input.value;
+                newWinningRules.settings.safetyZone = Number(input.value);
                 break;
               case "opponentStones":
-                settings.winningRules.settings.materialOpponent = input.value;
+                newWinningRules.settings.materialOpponent = Number(input.value);
                 break;
               case "searchDepth":
-                settings.searchRules.settings.depth = input.value;
+                newSearchRules.settings.depth = Number(input.value);
                 break;
               case "searchTimeout":
-                settings.searchRules.settings.timeout = input.value;
+                newSearchRules.settings.timeout = Number(input.value);
                 break;
               case "materialAdvantageConquered":
-                settings.materialAdvantageConquered.settings.totalWeight =
-                  input.value;
+                newMaterialAdvantageConquered.settings.totalWeight = Number(
+                  input.value
+                );
                 break;
               case "safetyZone1":
-                settings.safetyZoneProximity.settings.weightRowDistance1 =
-                  input.value;
+                newSafetyZoneProximity.settings.weightRowDistance1 = Number(
+                  input.value
+                );
                 break;
               case "safetyZone2":
-                settings.safetyZoneProximity.settings.weightRowDistance2 =
-                  input.value;
+                newSafetyZoneProximity.settings.weightRowDistance2 = Number(
+                  input.value
+                );
                 break;
               case "safetyZone3":
-                settings.safetyZoneProximity.settings.weightRowDistance3 =
-                  input.value;
+                newSafetyZoneProximity.settings.weightRowDistance3 = Number(
+                  input.value
+                );
                 break;
               case "safetyZone4":
-                settings.safetyZoneProximity.settings.weightRowDistance4 =
-                  input.value;
+                newSafetyZoneProximity.settings.weightRowDistance4 = Number(
+                  input.value
+                );
                 break;
               case "safetyZone5":
-                settings.safetyZoneProximity.settings.weightRowDistance5 =
-                  input.value;
+                newSafetyZoneProximity.settings.weightRowDistance5 = Number(
+                  input.value
+                );
                 break;
               case "safetyZoneTotalWeight":
-                settings.safetyZoneProximity.settings.totalWeight = input.value;
+                newSafetyZoneProximity.settings.totalWeight = Number(
+                  input.value
+                );
                 break;
               case "materialAdvantageAccounted":
-                settings.materialAdvantageAccounted.settings.totalWeight =
-                  input.value;
+                newMaterialAdvantageAccounted.settings.totalWeight = Number(
+                  input.value
+                );
                 break;
               default:
                 throw new Error("unknown input element");
             }
           });
+          settings.winningRules = newWinningRules;
+          settings.searchRules = newSearchRules;
+          settings.materialAdvantageConquered = newMaterialAdvantageConquered;
+          settings.safetyZoneProximity = newSafetyZoneProximity;
+          settings.materialAdvantageAccounted = newMaterialAdvantageAccounted;
           await settings.save();
         }
         if (navIcon.classList.contains("iconRecycle")) {
@@ -678,9 +709,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         "Web Workers are not supported in this browser. Please use a modern browser."
       );
     }
-    GridCell.svgTowerVector = createSvgTowerVector();
-    const domBoard = document.getElementById("board");
-    const domBoardState = createBoard(board, 6);
+    const domBoard = document.querySelector(".board");
+    const domBoardState = createBoard(domBoard);
     const navbar = document.querySelector(".navbar");
     const bot = domBoardState.playerState.twoPlayer.find(
       (player) => player.id === PLAYER_ID.BOT
@@ -702,11 +732,17 @@ window.addEventListener("DOMContentLoaded", async () => {
           dbWorkerResponse.response.message
       );
     }
-    initBoardEventHandlers(domBoard, domBoardState, aiWorker);
-    initNavbarEventHandlers(domBoardState, navbar);
     const settings = new Settings(dbWorker);
     initSectionSettings(settings);
+    initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings);
+    initNavbarEventHandlers(domBoardState, navbar);
   } catch (error) {
     console.error(error);
   }
+});
+window.addEventListener("error", (event) => {
+  console.log(event);
+});
+window.addEventListener("unhandledrejection", (event) => {
+  console.log(event);
 });

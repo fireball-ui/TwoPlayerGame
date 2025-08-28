@@ -1,12 +1,17 @@
 /**
  * @module ConfigState
  * @description This module provides classes that perform read and update operations to the database,
- * whenever the changed configurations are saved or restored to factory default by the user.
- * @requires module:AsyncWorkerAPI
+ * whenever the changed configurations are saved or restored to factory default.
+ * @requires module:AsyncAPIWrapper
  * @exports Settings - Reflects the current configuration state form the settings panel.
  */
 
-import { dispatchWorker, workerMessageScheme } from "./AsyncWorkerAPI.js";
+import {
+  dispatchWorker,
+  workerMessageScheme,
+  messageSchemeComparator,
+  handleResponse,
+} from "./AsyncAPIWrapper.js";
 
 /**
  * Reflects the current configuration state form the settings panel.
@@ -207,7 +212,15 @@ class Settings {
    * @param {Object}
    */
   set winningRules(value) {
-    this._winningRules = value;
+    if (!value.id || !value.settings || value.id !== "WinningRules") {
+      throw new Error("Class Settings: Invalid value for setter: " + value);
+    }
+    for (const [key, val] of Object.entries(value.settings)) {
+      if (isNaN(val)) {
+        throw new Error("Class Settings: Invalid value for setter: " + val);
+      }
+      this._winningRules.settings[key] = val;
+    }
   }
 
   /**
@@ -217,7 +230,17 @@ class Settings {
    * @param {Object}
    */
   set searchRules(value) {
-    this._searchRules = value;
+    if (!value.id || !value.settings || value.id !== "SearchRules") {
+      throw new Error("Class Settings: Invalid value for setter: " + value);
+    }
+    const values = Object.values(value.settings);
+    const keys = Object.keys(value.settings);
+    values.forEach((val, index) => {
+      if (isNaN(val)) {
+        throw new Error("Class Settings: Invalid value for setter: " + val);
+      }
+      this._searchRules.settings[keys[index]] = val;
+    });
   }
 
   /**
@@ -227,7 +250,21 @@ class Settings {
    * @param {Object}
    */
   set materialAdvantageConquered(value) {
-    this._materialAdvantageConquered = value;
+    if (
+      !value.id ||
+      !value.settings ||
+      value.id !== "MaterialAdvantageConquered"
+    ) {
+      throw new Error("Class Settings: Invalid value for setter: " + value);
+    }
+    const values = Object.values(value.settings);
+    const keys = Object.keys(value.settings);
+    values.forEach((val, index) => {
+      if (isNaN(val)) {
+        throw new Error("Class Settings: Invalid value for setter: " + val);
+      }
+      this._materialAdvantageConquered.settings[keys[index]] = val;
+    });
   }
 
   /**
@@ -237,7 +274,17 @@ class Settings {
    * @param {Object}
    */
   set safetyZoneProximity(value) {
-    this._safetyZoneProximity = value;
+    if (!value.id || !value.settings || value.id !== "SafetyZoneProximity") {
+      throw new Error("Class Settings: Invalid value for setter: " + value);
+    }
+    const values = Object.values(value.settings);
+    const keys = Object.keys(value.settings);
+    values.forEach((val, index) => {
+      if (isNaN(val)) {
+        throw new Error("Class Settings: Invalid value for setter: " + val);
+      }
+      this._safetyZoneProximity.settings[keys[index]] = val;
+    });
   }
 
   /**
@@ -247,7 +294,41 @@ class Settings {
    * @param {Object}
    */
   set materialAdvantageAccounted(value) {
-    this._materialAdvantageAccounted = value;
+    if (
+      !value.id ||
+      !value.settings ||
+      value.id !== "MaterialAdvantageAccounted"
+    ) {
+      throw new Error("Class Settings: Invalid value for setter: " + value);
+    }
+    const values = Object.values(value.settings);
+    const keys = Object.keys(value.settings);
+    values.forEach((val, index) => {
+      if (isNaN(val)) {
+        throw new Error("Class Settings: Invalid value for setter: " + val);
+      }
+      this._materialAdvantageAccounted.settings[keys[index]] = val;
+    });
+  }
+
+  /**
+   * Returns a new deep copied instance without the worker property,
+   * compliant with the structured clone algorithm.
+   * @returns {Object} - the new deep copied instance without the worker property
+   */
+  cloneInstance() {
+    const deepCopy = new Object();
+    deepCopy.winningRules = structuredClone(this.winningRules);
+    deepCopy.searchRules = structuredClone(this.searchRules);
+    deepCopy.materialAdvantageConquered = structuredClone(
+      this.materialAdvantageConquered
+    );
+    deepCopy.safetyZoneProximity = structuredClone(this.safetyZoneProximity);
+
+    deepCopy.materialAdvantageAccounted = structuredClone(
+      this.materialAdvantageAccounted
+    );
+    return deepCopy;
   }
 
   /**
@@ -258,81 +339,51 @@ class Settings {
     return new Promise(async (resolve, reject) => {
       try {
         let request = null;
-        let workerMessagePromise = null;
+        let workerResponse = null;
         request = structuredClone(workerMessageScheme);
         request.request.type = "get";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.winningRules.id);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
-        this.winningRules = structuredClone(
-          workerMessagePromise.response.message
-        );
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
+        this.winningRules = structuredClone(workerResponse.response.message);
         request = structuredClone(workerMessageScheme);
         request.request.type = "get";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.searchRules.id);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
-        this.searchRules = structuredClone(
-          workerMessagePromise.response.message
-        );
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
+        this.searchRules = structuredClone(workerResponse.response.message);
         request = structuredClone(workerMessageScheme);
         request.request.type = "get";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.materialAdvantageConquered.id);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         this.materialAdvantageConquered = structuredClone(
-          workerMessagePromise.response.message
+          workerResponse.response.message
         );
         request = structuredClone(workerMessageScheme);
         request.request.type = "get";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.safetyZoneProximity.id);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         this.safetyZoneProximity = structuredClone(
-          workerMessagePromise.response.message
+          workerResponse.response.message
         );
         request = structuredClone(workerMessageScheme);
         request.request.type = "get";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.materialAdvantageAccounted.id);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         this.materialAdvantageAccounted = structuredClone(
-          workerMessagePromise.response.message
+          workerResponse.response.message
         );
         resolve();
       } catch (error) {
-        console.log("error load settings: " + error);
-        reject(error);
+        reject(error.toString());
       }
     });
   }
@@ -346,66 +397,41 @@ class Settings {
     return new Promise(async (resolve, reject) => {
       try {
         let request = null;
-        let workerMessagePromise = null;
+        let workerResponse = null;
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(Settings.factoryWinningRules);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(Settings.factorySearchRules);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(
           Settings.factoryMaterialAdvantageConquered
         );
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(Settings.factorySafetyZoneProximity);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(
           Settings.factoryMaterialAdvantageAccounted
         );
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         this.winningRules = structuredClone(Settings.factoryWinningRules);
         this.searchRules = structuredClone(Settings.factorySearchRules);
         this.materialAdvantageConquered = structuredClone(
@@ -420,7 +446,7 @@ class Settings {
         resolve();
       } catch (error) {
         console.log("error save settings: " + error);
-        reject(error);
+        reject(error.toString());
       }
     });
   }
@@ -433,66 +459,41 @@ class Settings {
     return new Promise(async (resolve, reject) => {
       try {
         let request = null;
-        let workerMessagePromise = null;
+        let workerResponse = null;
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.winningRules);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.searchRules);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.materialAdvantageConquered);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.safetyZoneProximity);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         request = structuredClone(workerMessageScheme);
         request.request.type = "put";
         request.request.parameter.push(Settings.objStoreName);
         request.request.parameter.push(this.materialAdvantageAccounted);
-        workerMessagePromise = await dispatchWorker(this._dbWorker, request);
-        if (workerMessagePromise.response.error === true) {
-          throw new Error(
-            "Caught error loading records from db: " +
-              workerMessagePromise.response.message
-          );
-        }
+        workerResponse = await dispatchWorker(this._dbWorker, request);
+        handleResponse(workerResponse);
         resolve();
       } catch (error) {
         console.log("error save settings: " + error);
-        reject(error);
+        reject(error.toString());
       }
     });
   }
