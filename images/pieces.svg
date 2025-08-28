@@ -1,4 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <style>
+:root {
+    --dark-bg-color: #2e2e2e;
+  --dark-bot-color: #fb8c00;
+  --dark-user-color: #ec407a;
+  --dark-dot-color: #2e2e2e;
+    --light-bg-color: #f6ddbb;
+  --light-bot-color: blue;
+  --light-user-color: red;
+  --light-dot-color: black;
+}
+.fillColorUser {
+  fill: light-dark(var(--light-user-color), var(--dark-user-color));
+  opacity: 1;
+}
+.fillColorBot {
+  fill: light-dark(var(--light-bot-color), var(--dark-bot-color));
+  opacity: 1;
+}
+.strokeColor {
+  stroke: light-dark(var(--light-bg-color), var(--dark-bg-color));
+}
+.fillColorDot {
+  fill: light-dark(var(--light-dot-color), var(--dark-dot-color));
+}
+  </style>
     <symbol id="tower_none">
         <g></g>
     </symbol>
