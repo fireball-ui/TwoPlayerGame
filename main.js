@@ -39,7 +39,15 @@ import { Settings } from "./modules/ConfigState.js";
  */
 function createBoard(domBoard) {
   const cells = [];
+  const svg1 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg1.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg1.setAttribute("viewBox", "0 0 100 100");
+  const use1 = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use1.setAttribute("href", "./images/pieces.svg#tower_none");
+  svg1.appendChild(use1);
+
   Array.from(domBoard.children).forEach((domCell, index) => {
+    domCell.appendChild(svg1.cloneNode(true));
     const column = index % 6;
     const row = Math.round((index - column) / 6);
     const cell = new GridCell(row, column, true, domCell);
