@@ -232,7 +232,9 @@ function switchPlayer(playerState) {
  */
 function checkWin(boardState, player, settings) {
   if (
-    player.vault.opponent >= settings.winningRules.settings.materialOpponent ||
+    (settings.winningRules.settings.materialOpponent > 0 &&
+      player.vault.opponent >=
+        settings.winningRules.settings.materialOpponent) ||
     player.safetyTower >= settings.winningRules.settings.safetyZone
   ) {
     player.winner = true;

@@ -29,7 +29,6 @@
   transition-property: background-color, fill, stroke, filter;
   transition-duration: 0.8s;
   transition-timing-function: linear;
-  /*transition-delay: 0.1s;*/
 }
 @keyframes pulse {
   from {
@@ -41,21 +40,23 @@
     opacity: 0.4;
   }
 }
-.spinner1 {
-  animation: pulse 1s infinite alternate 0ms;
-}
-.spinner2 {
-  animation: pulse 1s infinite alternate 200ms;
-}
-.spinner3 {
-  animation: pulse 1s infinite alternate 400ms;
-}
-.spinner4 {
-  animation: pulse 1s infinite alternate 600ms;
-}
-.spinner5 {
-  animation: pulse 1s infinite alternate 800ms;
-}
-.spinner6 {
-  animation: pulse 1s infinite alternate 1000ms;
+.CSSloadSpinner {
+  .spinner1.spinner1Animate {
+    animation: pulse 1s infinite alternate 0ms;
+  }
+  .spinner2.spinner2Animate {
+    animation: pulse 1s infinite alternate 200ms;
+  }
+  .spinner3.spinner3Animate {
+    animation: pulse 1s infinite alternate 400ms;
+  }
+  .spinner4.spinner4Animate {
+    animation: pulse 1s infinite alternate 600ms;
+  }
+  .spinner5.spinner5Animate {
+    animation: pulse 1s infinite alternate 800ms;
+  }
+  .spinner6.spinner6Animate {
+    animation: pulse 1s infinite alternate 1000ms;
+  }
 }

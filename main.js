@@ -21,13 +21,23 @@ import {
   PLAYER_ID,
   Sidebar,
 } from "./modules/GameState.js";
-import { getLocalMoves, checkWin } from "./modules/GameLogic.js";
 import {
   dispatchWorker,
   workerMessageScheme,
-  cssTransitionEnded,
 } from "./modules/AsyncAPIWrapper.js";
 import { Settings } from "./modules/ConfigState.js";
+import {
+  enableBoardEvents,
+  handleHoveredCellIn,
+  handleHoveredCellOut,
+  prepareMoveForCell,
+  discardMoveForCell,
+  playUserMove,
+} from "./modules/GameEventLoop.js";
+import { ReplayLogger } from "./modules/Logger.js";
+let aiWorker;
+let dbWorker;
+let isFatalError = false;
 
 /**
  * Creates a game board by generating a grid of cells, initializing their state,
@@ -119,117 +129,11 @@ function createPlayer() {
 }
 
 /**
- * Handles the mouse hover event on entry of a cell in the BoardState.
- * It highlights the hovered cell and its valid neighboring cells for the current player.
- *
- * @param {GridCell} hoveredCell
- * @param {BoardState} domBoardState
- * @param {Player} currentPlayer
- * @returns {void}
- */
-function handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer) {
-  const markedCells = document.querySelectorAll(".mark");
-  if (markedCells.length > 0) {
-    return;
-  }
-  const neighbors = getLocalMoves(hoveredCell, currentPlayer, domBoardState);
-  if (neighbors.length === 0) {
-    return;
-  }
-  hoveredCell.addClass("select");
-  neighbors.forEach((neighbor) => {
-    neighbor.addClass("hover");
-  });
-}
-
-/**
- * Handles the mouse hover event on exit of a cell in the BoardState.
- * It removes the highlight from the hovered cell and its valid neighboring cells.
- *
- * @returns {void}
- */
-function handleHoveredCellOut(domBoardState) {
-  document.querySelectorAll(".hover, .select").forEach((cell) => {
-    cell.classList.remove("hover", "select");
-  });
-}
-
-/**
- * This function handles the first out of two "click event verification steps",
- * in order to play the move in the browser UI.
- * It marks and highlights the clicked source cell persistently as well as all valid target cells,
- * e.g. the hovering effects for all cells are disabled.
- * Returns true if the move was prepared successfully, false otherwise.
- * @param {GridCell} clickedCell
- * @returns {boolean}
- */
-function prepareMoveForCell(clickedCell) {
-  if (clickedCell.domEl.classList.contains("select")) {
-    clickedCell.removeClass("select");
-    clickedCell.addClass("mark");
-    document.querySelectorAll(".hover").forEach((cell) => {
-      cell.classList.remove("hover");
-      cell.classList.add("click");
-    });
-    return true;
-  }
-  return false;
-}
-
-/**
- * This function discards the marked cell in the prepare step for movement,
- * and re-enables the hovering effects for all cells.
- * Returns true if the discard was successfully, false otherwise.
- * @param {GridCell} clickedCell
- * @returns {boolean}
- */
-function discardMoveForCell(clickedCell) {
-  if (clickedCell.domEl.classList.contains("mark")) {
-    clickedCell.domEl.classList.remove("mark");
-    document.querySelectorAll(".click").forEach((cell) => {
-      cell.classList.remove("click");
-    });
-    return true;
-  }
-  return false;
-}
-
-/**
- * All UI events for the board must be disabled during the AI processing of the spawned Web Worker.
- * @param {BoardState} domBoardState
- * @returns {void}
- */
-function disableBoardEvents(domBoardState) {
-  // Disable all event handlers for the board to prevent further interactions
-  domBoardState.disableBoardEvents = true;
-}
-
-/**
- * Enable all UI events for the next move after the AI processing of the spawned Web Worker.
- * @param {BoardState} domBoardState
- * @returns {void}
- */
-function enableBoardEvents(domBoardState) {
-  // Disable all event handlers for the board to prevent further interactions
-  domBoardState.disableBoardEvents = false;
-}
-
-/**
- * Removes all cell effects after a played move.
- * @returns {void}
- */
-function discardBoardAnimations() {
-  document.querySelectorAll(".boardCell").forEach((cell) => {
-    cell.classList.remove("select", "hover", "mark", "click");
-  });
-}
-
-/**
  * Resets the game state for all DOM elements, Event Handlers and instances.
  * @param {BoardState} domBoardState
  * @returns {void}
  */
-function resetGame(domBoardState) {
+function resetGame(domBoardState, logger) {
   domBoardState.cells.forEach((cell) => {
     cell.svgLayout = [];
     cell.updateSvg();
@@ -280,27 +184,10 @@ function resetGame(domBoardState) {
   enableBoardEvents(domBoardState);
   document.querySelector(".board").classList.remove("filterGray");
   domBoardState.waitForWebWorker = false;
+  logger.startDate = new Date();
+  logger.move = 0;
 }
 
-/**
- * Handle UI logic after the database worker has sent a message,
- * either for logging the current game state or for saving game settings customization.
- * @param {Worker} dbWorker
- * @param {BoardState} domBoardState
- * @returns {void}
- */
-function initDbWorkerHandler(dbWorker) {
-  dbWorker.addEventListener("message", (event) => {
-    if (event.data.error === true) {
-      throw new Error("Error in dbWorker: " + event.data);
-    }
-  });
-  dbWorker.addEventListener("error", (event) => {
-    throw new Error(
-      "Uncaught error in dbWorker: " + event.error + " " + event.message
-    );
-  });
-}
 /**
  * Initializes event handlers for the game board, enabling interactive cell selection,
  * highlighting, and move execution for both (player and bot).
@@ -310,156 +197,94 @@ function initDbWorkerHandler(dbWorker) {
  * @param {Worker} aiWorker - The spawned Web Worker instance that handles AI logic.
  * @returns {void}
  */
-function initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings) {
+function initBoardEventHandlers(
+  domBoard,
+  domBoardState,
+  aiWorker,
+  settings,
+  logger
+) {
   domBoard.addEventListener("mouseover", (event) => {
-    const currentPlayer = domBoardState.playerState.twoPlayer.find(
-      (player) => player.turn === true
-    );
-    let hoveredCell = domBoardState.mapDomElement.get(
-      event.target.closest(".boardCell")
-    );
-    hoveredCell ??= null;
-    if (
-      domBoardState.disableBoardEvents === true ||
-      hoveredCell === null ||
-      !hoveredCell instanceof GridCell ||
-      hoveredCell.svgLayout.length === 0 ||
-      hoveredCell.svgLayout.at(-1) !== currentPlayer.id ||
-      hoveredCell.domEl.classList.contains("select")
-    ) {
-      return;
+    try {
+      if (isFatalError) {
+        return;
+      }
+      const currentPlayer = domBoardState.playerState.twoPlayer.find(
+        (player) => player.turn === true
+      );
+      let hoveredCell = domBoardState.mapDomElement.get(
+        event.target.closest(".boardCell")
+      );
+      hoveredCell ??= null;
+      if (
+        domBoardState.disableBoardEvents === true ||
+        hoveredCell === null ||
+        !hoveredCell instanceof GridCell ||
+        hoveredCell.svgLayout.length === 0 ||
+        hoveredCell.svgLayout.at(-1) !== currentPlayer.id ||
+        hoveredCell.domEl.classList.contains("select")
+      ) {
+        return;
+      }
+      handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer);
+    } catch (error) {
+      console.error(error);
+      throw new Error(error);
     }
-    handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer);
   });
 
   domBoard.addEventListener("mouseout", (event) => {
-    const currentPlayer = domBoardState.playerState.twoPlayer.find(
-      (player) => player.turn === true
-    );
-    let hoveredCell = domBoardState.mapDomElement.get(
-      event.target.closest(".boardCell")
-    );
-    hoveredCell ??= null;
-    if (
-      domBoardState.disableBoardEvents === true ||
-      hoveredCell === null ||
-      !hoveredCell instanceof GridCell ||
-      hoveredCell.svgLayout.length === 0 ||
-      hoveredCell.svgLayout.at(-1) !== currentPlayer.id
-    ) {
-      return;
+    try {
+      if (isFatalError) {
+        return;
+      }
+      const currentPlayer = domBoardState.playerState.twoPlayer.find(
+        (player) => player.turn === true
+      );
+      let hoveredCell = domBoardState.mapDomElement.get(
+        event.target.closest(".boardCell")
+      );
+      hoveredCell ??= null;
+      if (
+        domBoardState.disableBoardEvents === true ||
+        hoveredCell === null ||
+        !hoveredCell instanceof GridCell ||
+        hoveredCell.svgLayout.length === 0 ||
+        hoveredCell.svgLayout.at(-1) !== currentPlayer.id
+      ) {
+        return;
+      }
+      handleHoveredCellOut(domBoardState);
+    } catch (error) {
+      console.error(error);
+      throw new Error(error);
     }
-    handleHoveredCellOut(domBoardState);
   });
 
   domBoard.addEventListener("click", async (event) => {
-    // Return if this event is not fired for playing a new move
-    let clickedCell = domBoardState.mapDomElement.get(
-      event.target.closest(".boardCell")
-    );
-    clickedCell ??= null;
-    if (
-      domBoardState.disableBoardEvents === true ||
-      clickedCell === null ||
-      !clickedCell instanceof GridCell ||
-      prepareMoveForCell(clickedCell, domBoardState) === true ||
-      discardMoveForCell(clickedCell, domBoardState) === true ||
-      !clickedCell.domEl.classList.contains("click")
-    ) {
-      return;
-    }
-    // Main game event loop starts here
-    const markedCell = domBoardState.mapDomElement.get(
-      document.querySelector(".mark")
-    );
-    // Play move, update BoardState, update Sidebar and turn player
-    domBoardState.applyMoveAndTurn(markedCell, clickedCell);
-    disableBoardEvents(domBoardState);
-    discardBoardAnimations();
-    let player = domBoardState.playerState.twoPlayer.find(
-      (player) => player.turn === false
-    );
-    Sidebar.playerMap.get(player).refreshDashboard();
-    // interactive player has won?
-    if (checkWin(domBoardState, player, settings)) {
-      document.querySelector(".board").classList.add("filterGray");
-      Sidebar.playerMap.get(player).refreshDashboard();
-    } else {
-      //animate css load spinner
-      document.querySelectorAll(".CSSloadSpinner g").forEach((svgGelement) => {
-        svgGelement.classList.remove("svgHide");
-      });
-      // Dispatch worker for AI processing
-      domBoardState.waitForWebWorker = true;
-      const aiWorkerRequest = structuredClone(workerMessageScheme);
-      aiWorkerRequest.request.type = "findBestMove";
-      aiWorkerRequest.request.parameter.push(domBoardState.cloneInstance());
-      aiWorkerRequest.request.parameter.push(settings.cloneInstance());
-      const aiWorkerResponse = await dispatchWorker(
-        aiWorker,
-        aiWorkerRequest,
-        settings.searchRules.settings.timeout * 1000
-      );
-      if (aiWorkerResponse.response.error === true) {
-        throw new Error(
-          "Caught error in ai worker: " + aiWorkerResponse.response.message
-        );
+    try {
+      if (isFatalError) {
+        return;
       }
-
-      let srcCellId = aiWorkerResponse.response.message[0]._id ?? null;
-      let tgtCellId = aiWorkerResponse.response.message[1]._id ?? null;
+      // Return if this event is not fired for playing a new move
+      let clickedCell = domBoardState.mapDomElement.get(
+        event.target.closest(".boardCell")
+      );
+      clickedCell ??= null;
       if (
-        srcCellId === null ||
-        tgtCellId === null ||
-        isNaN(srcCellId) ||
-        isNaN(tgtCellId)
+        domBoardState.disableBoardEvents === true ||
+        clickedCell === null ||
+        !clickedCell instanceof GridCell ||
+        prepareMoveForCell(clickedCell, domBoardState) === true ||
+        discardMoveForCell(clickedCell, domBoardState) === true ||
+        !clickedCell.domEl.classList.contains("click")
       ) {
-        throw new Error(
-          "Invalid move data received from worker. Expected two integers for the source and target cell identifiers."
-        );
+        return;
       }
-      let moveBotSrcInst = domBoardState.cells.find(
-        (cell) => cell.id === srcCellId
-      );
-      moveBotSrcInst ??= null;
-      let moveBotTgtInst = domBoardState.cells.find(
-        (cell) => cell.id === tgtCellId
-      );
-      moveBotTgtInst ??= null;
-      if (
-        moveBotSrcInst === null ||
-        moveBotTgtInst === null ||
-        !moveBotSrcInst instanceof GridCell ||
-        !moveBotTgtInst instanceof GridCell
-      ) {
-        throw new Error(
-          "Invalid move data received from worker. Invalid integer identifier for the source or target cell."
-        );
-      }
-      //hide css load spinner
-      document.querySelectorAll(".CSSloadSpinner g").forEach((svgGelement) => {
-        svgGelement.classList.add("svgHide");
-      });
-      // trigger animations for this bot's move and wait for the end of the css transitions
-      await cssTransitionEnded(moveBotSrcInst.domEl, "select");
-      await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
-      // apply move
-      domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
-      // remove css classes for cleanup and animation of this bot's move
-      moveBotSrcInst.domEl.classList.remove("select");
-      moveBotTgtInst.domEl.classList.remove("hover");
-      const player = domBoardState.playerState.twoPlayer.find(
-        (player) => player.turn === false
-      );
-      Sidebar.playerMap.get(player).refreshDashboard();
-      domBoardState.waitForWebWorker = false;
-      if (checkWin(domBoardState, player, settings)) {
-        document.querySelector(".board").classList.add("filterGray");
-        Sidebar.playerMap.get(player).refreshDashboard();
-      } else {
-        // Enable board events for the next move
-        enableBoardEvents(domBoardState);
-      }
+      playUserMove(domBoardState, settings, aiWorker, logger, clickedCell);
+    } catch (error) {
+      console.error(error);
+      throw new Error(error);
     }
   });
 }
@@ -471,30 +296,41 @@ function initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings) {
  * @param {HTMLDivElement} navbar - The DOM element representing the navigation bar above the game board.
  * @returns {void}
  */
-function initNavbarEventHandlers(domBoardState, navbar) {
+function initNavbarEventHandlers(domBoardState, logger, navbar) {
   navbar.addEventListener("click", (event) => {
-    let clickedCell = event.target.closest("div");
-    clickedCell ??= null;
-    if (
-      domBoardState.waitForWebWorker === true ||
-      clickedCell === null ||
-      !clickedCell instanceof HTMLDivElement ||
-      (!clickedCell.classList.contains("navbarRestart") &&
-        !clickedCell.classList.contains("navbarSettings") &&
-        !clickedCell.classList.contains("navbarDatabase"))
-    ) {
-      return;
-    }
-    Array.from(clickedCell.classList).forEach((className) => {
-      switch (className) {
-        case "navbarRestart":
-          resetGame(domBoardState);
-          break;
-        case "navbarSettings":
-          window.location.hash = "#sectSettings";
-          break;
+    try {
+      if (isFatalError) {
+        return;
       }
-    });
+      let clickedCell = event.target.closest("div");
+      clickedCell ??= null;
+      if (
+        domBoardState.waitForWebWorker === true ||
+        clickedCell === null ||
+        !clickedCell instanceof HTMLDivElement ||
+        (!clickedCell.classList.contains("navbarRestart") &&
+          !clickedCell.classList.contains("navbarSettings") &&
+          !clickedCell.classList.contains("navbarDatabase"))
+      ) {
+        return;
+      }
+      Array.from(clickedCell.classList).forEach((className) => {
+        switch (className) {
+          case "navbarRestart":
+            resetGame(domBoardState, logger);
+            break;
+          case "navbarSettings":
+            window.location.hash = "#sectSettings";
+            break;
+          case "navbarDatabase":
+            window.location.hash = "#sectReplayLogger";
+            break;
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      throw new Error(error);
+    }
   });
 }
 
@@ -728,8 +564,8 @@ window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
     );
     createSidebar(bot, document.querySelector(".sidebarBot"));
     createSidebar(user, document.querySelector(".sidebarUser"));
-    const aiWorker = new Worker("./modules/AiWorker.js", { type: "module" });
-    const dbWorker = new Worker("./modules/DbWorker.js", { type: "module" });
+    aiWorker = new Worker("./modules/AiWorker.js", { type: "module" });
+    dbWorker = new Worker("./modules/DbWorker.js", { type: "module" });
     //open IndexedDB database
     const dbWorkerRequest = structuredClone(workerMessageScheme);
     dbWorkerRequest.request.type = "open";
@@ -741,16 +577,32 @@ window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
       );
     }
     const settings = new Settings(dbWorker);
+    const logger = new ReplayLogger(domBoardState, dbWorker);
     initSectionSettings(settings);
-    initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings);
-    initNavbarEventHandlers(domBoardState, navbar);
+    initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings, logger);
+    initNavbarEventHandlers(domBoardState, logger, navbar);
   } catch (error) {
     console.error(error);
+    throw new Error(error);
   }
 });
-window.addEventListener("error", (event) => {
-  console.log(event);
+window.addEventListener("error", (errorEvent) => {
+  errorEvent.stopImmediatePropagation();
+  isFatalError = true;
+  console.error(errorEvent.error);
+  console.error(errorEvent.message);
+  console.error(error.filename);
+  console.error(error.lineno);
+  console.error(errorEvent.colno);
+  if (dbWorker && dbWorker instanceof Worker) {
+    dbWorker.terminate();
+  }
+  if (aiWorker && aiWorker instanceof Worker) {
+    aiWorker.terminate();
+  }
 });
 window.addEventListener("unhandledrejection", (event) => {
-  console.log(event);
+  console.error(event.reason);
+  console.error(event.promise);
+  throw new Error("Promise rejection event, target: " + event.target);
 });

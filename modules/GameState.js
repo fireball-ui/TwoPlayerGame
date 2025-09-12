@@ -1033,6 +1033,18 @@ class Move {
   get playerState() {
     return this._playerState;
   }
+
+  /**
+   * Returns a new deep copied instance without any DOM relations.
+   * @returns {Move} - the new deep copied instance
+   */
+  cloneInstance() {
+    return new Move(
+      this._srcCell.cloneInstance(),
+      this._tgtCell.cloneInstance(),
+      this._playerState.cloneInstance()
+    );
+  }
 }
 
 /**

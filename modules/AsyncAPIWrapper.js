@@ -39,14 +39,10 @@ function messageSchemeComparator(object) {
 
 function handleResponse(respMsg) {
   if (!messageSchemeComparator(respMsg)) {
-    throw new Error(
-      "Uncaught error loading records from db: " + respMsg.toString()
-    );
+    throw new Error("Uncaught error from db worker: " + respMsg.toString());
   }
   if (respMsg.response.error === true) {
-    throw new Error(
-      "Caught error loading records from db: " + respMsg.response.message
-    );
+    throw new Error("Caught error from db worker: " + respMsg.response.message);
   }
 }
 

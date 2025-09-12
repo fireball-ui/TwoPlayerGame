@@ -9,7 +9,6 @@
 import {
   dispatchWorker,
   workerMessageScheme,
-  messageSchemeComparator,
   handleResponse,
 } from "./AsyncAPIWrapper.js";
 
@@ -324,7 +323,6 @@ class Settings {
       this.materialAdvantageConquered
     );
     deepCopy.safetyZoneProximity = structuredClone(this.safetyZoneProximity);
-
     deepCopy.materialAdvantageAccounted = structuredClone(
       this.materialAdvantageAccounted
     );
