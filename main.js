@@ -34,7 +34,7 @@ import {
   discardMoveForCell,
   playUserMove,
 } from "./modules/GameEventLoop.js";
-import { ReplayLogger } from "./modules/Logger.js";
+import { LoggerWriter, LoggerReader } from "./modules/Logger.js";
 let aiWorker;
 let dbWorker;
 let isFatalError = false;
@@ -52,6 +52,12 @@ function createBoard(domBoard) {
   const svg1 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg1.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   svg1.setAttribute("viewBox", "0 0 100 100");
+  svg1.classList.add(
+    "fillColorUser",
+    "fillColorBot",
+    "fillColorDot",
+    "strokeColor"
+  );
   const use1 = document.createElementNS("http://www.w3.org/2000/svg", "use");
   use1.setAttribute("href", "./images/pieces.svg#tower_none");
   svg1.appendChild(use1);
@@ -133,7 +139,7 @@ function createPlayer() {
  * @param {BoardState} domBoardState
  * @returns {void}
  */
-function resetGame(domBoardState, logger) {
+function resetGame(domBoardState, loggerWriter) {
   domBoardState.cells.forEach((cell) => {
     cell.svgLayout = [];
     cell.updateSvg();
@@ -184,8 +190,8 @@ function resetGame(domBoardState, logger) {
   enableBoardEvents(domBoardState);
   document.querySelector(".board").classList.remove("filterGray");
   domBoardState.waitForWebWorker = false;
-  logger.startDate = new Date();
-  logger.move = 0;
+  loggerWriter.gameId = Date.now();
+  loggerWriter.move = 0;
 }
 
 /**
@@ -202,7 +208,7 @@ function initBoardEventHandlers(
   domBoardState,
   aiWorker,
   settings,
-  logger
+  loggerWriter
 ) {
   domBoard.addEventListener("mouseover", (event) => {
     try {
@@ -254,7 +260,7 @@ function initBoardEventHandlers(
       ) {
         return;
       }
-      handleHoveredCellOut(domBoardState);
+      handleHoveredCellOut();
     } catch (error) {
       console.error(error);
       throw new Error(error);
@@ -275,13 +281,19 @@ function initBoardEventHandlers(
         domBoardState.disableBoardEvents === true ||
         clickedCell === null ||
         !clickedCell instanceof GridCell ||
-        prepareMoveForCell(clickedCell, domBoardState) === true ||
-        discardMoveForCell(clickedCell, domBoardState) === true ||
+        prepareMoveForCell(clickedCell) === true ||
+        discardMoveForCell(clickedCell) === true ||
         !clickedCell.domEl.classList.contains("click")
       ) {
         return;
       }
-      playUserMove(domBoardState, settings, aiWorker, logger, clickedCell);
+      playUserMove(
+        domBoardState,
+        settings,
+        aiWorker,
+        loggerWriter,
+        clickedCell
+      );
     } catch (error) {
       console.error(error);
       throw new Error(error);
@@ -296,7 +308,7 @@ function initBoardEventHandlers(
  * @param {HTMLDivElement} navbar - The DOM element representing the navigation bar above the game board.
  * @returns {void}
  */
-function initNavbarEventHandlers(domBoardState, logger, navbar) {
+function initNavbarEventHandlers(domBoardState, loggerWriter, navbar) {
   navbar.addEventListener("click", (event) => {
     try {
       if (isFatalError) {
@@ -314,16 +326,26 @@ function initNavbarEventHandlers(domBoardState, logger, navbar) {
       ) {
         return;
       }
-      Array.from(clickedCell.classList).forEach((className) => {
+      Array.from(clickedCell.classList).forEach(async (className) => {
         switch (className) {
           case "navbarRestart":
-            resetGame(domBoardState, logger);
+            resetGame(domBoardState, loggerWriter);
             break;
           case "navbarSettings":
             window.location.hash = "#sectSettings";
             break;
           case "navbarDatabase":
+            const loggerReader = LoggerReader.instances.get(
+              loggerWriter.gameId
+            );
+            await loggerReader.createPseudoDbCursor();
+            let record = await loggerReader.fetchRecord(-1);
+            console.log("1" + record);
+            record = await loggerReader.fetchRecord(-3);
+            console.log(record);
             window.location.hash = "#sectReplayLogger";
+            break;
+          default:
             break;
         }
       });
@@ -545,7 +567,7 @@ async function initSectionSettings(settings) {
 /**
  * Main entry point for the game.
  */
-window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
+window.addEventListener("load", async () => {
   try {
     window.location.hash = "#sectHome";
     if (!window.Worker) {
@@ -566,6 +588,7 @@ window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
     createSidebar(user, document.querySelector(".sidebarUser"));
     aiWorker = new Worker("./modules/AiWorker.js", { type: "module" });
     dbWorker = new Worker("./modules/DbWorker.js", { type: "module" });
+    LoggerWriter.dbWorker = dbWorker;
     //open IndexedDB database
     const dbWorkerRequest = structuredClone(workerMessageScheme);
     dbWorkerRequest.request.type = "open";
@@ -577,10 +600,16 @@ window.addEventListener(/*"DOMContentLoaded"*/ "load", async () => {
       );
     }
     const settings = new Settings(dbWorker);
-    const logger = new ReplayLogger(domBoardState, dbWorker);
+    const loggerWriter = new LoggerWriter(domBoardState);
     initSectionSettings(settings);
-    initBoardEventHandlers(domBoard, domBoardState, aiWorker, settings, logger);
-    initNavbarEventHandlers(domBoardState, logger, navbar);
+    initBoardEventHandlers(
+      domBoard,
+      domBoardState,
+      aiWorker,
+      settings,
+      loggerWriter
+    );
+    initNavbarEventHandlers(domBoardState, loggerWriter, navbar);
   } catch (error) {
     console.error(error);
     throw new Error(error);

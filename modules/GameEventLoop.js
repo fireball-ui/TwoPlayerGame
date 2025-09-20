@@ -12,7 +12,6 @@ import {
   cssTransitionEnded,
 } from "./AsyncAPIWrapper.js";
 import { getLocalMoves } from "./GameLogic.js";
-import { ReplayLogger } from "./Logger.js";
 
 /**
  * Handles the mouse hover event on entry of a cell in the BoardState.
@@ -44,7 +43,7 @@ function handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer) {
  *
  * @returns {void}
  */
-function handleHoveredCellOut(domBoardState) {
+function handleHoveredCellOut() {
   document.querySelectorAll(".hover, .select").forEach((cell) => {
     cell.classList.remove("hover", "select");
   });
@@ -124,7 +123,7 @@ async function playUserMove(
   domBoardState,
   settings,
   aiWorker,
-  logger,
+  loggerWriter,
   clickedCell
 ) {
   // Main game event loop starts here
@@ -133,7 +132,7 @@ async function playUserMove(
   );
   // Play move, update BoardState, update Sidebar and turn player
   domBoardState.applyMoveAndTurn(markedCell, clickedCell);
-  await logger.update(
+  await loggerWriter.update(
     new Move(markedCell, clickedCell, domBoardState.playerState)
   );
   disableBoardEvents(domBoardState);
@@ -147,11 +146,11 @@ async function playUserMove(
     document.querySelector(".board").classList.add("filterGray");
     Sidebar.playerMap.get(player).refreshDashboard();
   } else {
-    playBotMove(domBoardState, settings, aiWorker, logger);
+    playBotMove(domBoardState, settings, aiWorker, loggerWriter);
   }
 }
 
-async function playBotMove(domBoardState, settings, aiWorker, logger) {
+async function playBotMove(domBoardState, settings, aiWorker, loggerWriter) {
   //animate css load spinner
   const spinner1 = document.querySelector(".spinner1");
   const spinner2 = document.querySelector(".spinner2");
@@ -236,7 +235,7 @@ async function playBotMove(domBoardState, settings, aiWorker, logger) {
   await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
   // apply move
   domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
-  await logger.update(
+  await loggerWriter.update(
     new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
   );
   // remove css classes for cleanup and animation of this bot's move
