@@ -212,11 +212,11 @@ class Settings {
    */
   set winningRules(value) {
     if (!value.id || !value.settings || value.id !== "WinningRules") {
-      throw new Error("Class Settings: Invalid value for setter: " + value);
+      throw new Error("Class Settings: Invalid value for setter1: " + value);
     }
     for (const [key, val] of Object.entries(value.settings)) {
       if (isNaN(val)) {
-        throw new Error("Class Settings: Invalid value for setter: " + val);
+        throw new Error("Class Settings: Invalid value for setter1: " + val);
       }
       this._winningRules.settings[key] = val;
     }
@@ -230,13 +230,13 @@ class Settings {
    */
   set searchRules(value) {
     if (!value.id || !value.settings || value.id !== "SearchRules") {
-      throw new Error("Class Settings: Invalid value for setter: " + value);
+      throw new Error("Class Settings: Invalid value for setter2: " + value);
     }
     const values = Object.values(value.settings);
     const keys = Object.keys(value.settings);
     values.forEach((val, index) => {
       if (isNaN(val)) {
-        throw new Error("Class Settings: Invalid value for setter: " + val);
+        throw new Error("Class Settings: Invalid value for setter2: " + val);
       }
       this._searchRules.settings[keys[index]] = val;
     });
@@ -254,13 +254,13 @@ class Settings {
       !value.settings ||
       value.id !== "MaterialAdvantageConquered"
     ) {
-      throw new Error("Class Settings: Invalid value for setter: " + value);
+      throw new Error("Class Settings: Invalid value for setter3: " + value);
     }
     const values = Object.values(value.settings);
     const keys = Object.keys(value.settings);
     values.forEach((val, index) => {
       if (isNaN(val)) {
-        throw new Error("Class Settings: Invalid value for setter: " + val);
+        throw new Error("Class Settings: Invalid value for setter3: " + val);
       }
       this._materialAdvantageConquered.settings[keys[index]] = val;
     });
@@ -274,13 +274,13 @@ class Settings {
    */
   set safetyZoneProximity(value) {
     if (!value.id || !value.settings || value.id !== "SafetyZoneProximity") {
-      throw new Error("Class Settings: Invalid value for setter: " + value);
+      throw new Error("Class Settings: Invalid value for setter4: " + value);
     }
     const values = Object.values(value.settings);
     const keys = Object.keys(value.settings);
     values.forEach((val, index) => {
       if (isNaN(val)) {
-        throw new Error("Class Settings: Invalid value for setter: " + val);
+        throw new Error("Class Settings: Invalid value for setter4: " + val);
       }
       this._safetyZoneProximity.settings[keys[index]] = val;
     });
@@ -298,13 +298,13 @@ class Settings {
       !value.settings ||
       value.id !== "MaterialAdvantageAccounted"
     ) {
-      throw new Error("Class Settings: Invalid value for setter: " + value);
+      throw new Error("Class Settings: Invalid value for setter5: " + value);
     }
     const values = Object.values(value.settings);
     const keys = Object.keys(value.settings);
     values.forEach((val, index) => {
       if (isNaN(val)) {
-        throw new Error("Class Settings: Invalid value for setter: " + val);
+        throw new Error("Class Settings: Invalid value for setter5: " + val);
       }
       this._materialAdvantageAccounted.settings[keys[index]] = val;
     });
@@ -334,56 +334,57 @@ class Settings {
    * @returns {void}
    */
   async load() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let request = null;
-        let workerResponse = null;
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "get";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.winningRules.id);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.winningRules = structuredClone(workerResponse.response.message);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "get";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.searchRules.id);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.searchRules = structuredClone(workerResponse.response.message);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "get";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.materialAdvantageConquered.id);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.materialAdvantageConquered = structuredClone(
-          workerResponse.response.message
-        );
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "get";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.safetyZoneProximity.id);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.safetyZoneProximity = structuredClone(
-          workerResponse.response.message
-        );
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "get";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.materialAdvantageAccounted.id);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.materialAdvantageAccounted = structuredClone(
-          workerResponse.response.message
-        );
-        resolve();
-      } catch (error) {
-        reject(error.toString());
-      }
-    });
+    try {
+      let request = null;
+      let workerResponse = null;
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.winningRules.id);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.winningRules = structuredClone(workerResponse.response.message);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.searchRules.id);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.searchRules = structuredClone(workerResponse.response.message);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.materialAdvantageConquered.id);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.materialAdvantageConquered = structuredClone(
+        workerResponse.response.message
+      );
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.safetyZoneProximity.id);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.safetyZoneProximity = structuredClone(
+        workerResponse.response.message
+      );
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.materialAdvantageAccounted.id);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.materialAdvantageAccounted = structuredClone(
+        workerResponse.response.message
+      );
+    } catch (error) {
+      console.log(JSON.stringify(structuredClone(error)));
+      throw new Error(
+        "caught error in Settings load: " +
+          JSON.stringify(structuredClone(error))
+      );
+    }
   }
 
   /**
@@ -392,61 +393,62 @@ class Settings {
    * @returns {void}
    */
   async restoreFactoryDefault() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let request = null;
-        let workerResponse = null;
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(Settings.factoryWinningRules);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(Settings.factorySearchRules);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(
-          Settings.factoryMaterialAdvantageConquered
-        );
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(Settings.factorySafetyZoneProximity);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(
-          Settings.factoryMaterialAdvantageAccounted
-        );
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        this.winningRules = structuredClone(Settings.factoryWinningRules);
-        this.searchRules = structuredClone(Settings.factorySearchRules);
-        this.materialAdvantageConquered = structuredClone(
-          Settings.factoryMaterialAdvantageConquered
-        );
-        this.safetyZoneProximity = structuredClone(
-          Settings.factorySafetyZoneProximity
-        );
-        this.materialAdvantageAccounted = structuredClone(
-          Settings.factoryMaterialAdvantageAccounted
-        );
-        resolve();
-      } catch (error) {
-        console.log("error save settings: " + error);
-        reject(error.toString());
-      }
-    });
+    try {
+      let request = null;
+      let workerResponse = null;
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(Settings.factoryWinningRules);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(Settings.factorySearchRules);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(
+        Settings.factoryMaterialAdvantageConquered
+      );
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(Settings.factorySafetyZoneProximity);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(
+        Settings.factoryMaterialAdvantageAccounted
+      );
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      this.winningRules = structuredClone(Settings.factoryWinningRules);
+      this.searchRules = structuredClone(Settings.factorySearchRules);
+      this.materialAdvantageConquered = structuredClone(
+        Settings.factoryMaterialAdvantageConquered
+      );
+      this.safetyZoneProximity = structuredClone(
+        Settings.factorySafetyZoneProximity
+      );
+      this.materialAdvantageAccounted = structuredClone(
+        Settings.factoryMaterialAdvantageAccounted
+      );
+    } catch (error) {
+      console.log(
+        "error save settings: " + JSON.stringify(structuredClone(error))
+      );
+      throw new Error(
+        "error save settings: " + JSON.stringify(structuredClone(error))
+      );
+    }
   }
 
   /**
@@ -454,46 +456,42 @@ class Settings {
    * @returns {void}
    */
   async save() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let request = null;
-        let workerResponse = null;
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.winningRules);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.searchRules);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.materialAdvantageConquered);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.safetyZoneProximity);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(Settings.objStoreName);
-        request.request.parameter.push(this.materialAdvantageAccounted);
-        workerResponse = await dispatchWorker(this._dbWorker, request);
-        handleResponse(workerResponse);
-        resolve();
-      } catch (error) {
-        console.log("error save settings: " + error);
-        reject(error.toString());
-      }
-    });
+    try {
+      let request = null;
+      let workerResponse = null;
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.winningRules);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.searchRules);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.materialAdvantageConquered);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.safetyZoneProximity);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(Settings.objStoreName);
+      request.request.parameter.push(this.materialAdvantageAccounted);
+      workerResponse = await dispatchWorker(this._dbWorker, request);
+      handleResponse(workerResponse);
+    } catch (error) {
+      throw new Error(JSON.stringify(structuredClone(error)));
+    }
   }
 }
 

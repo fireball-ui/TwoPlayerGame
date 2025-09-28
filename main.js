@@ -34,7 +34,16 @@ import {
   discardMoveForCell,
   playUserMove,
 } from "./modules/GameEventLoop.js";
-import { LoggerWriter, LoggerReader } from "./modules/Logger.js";
+import {
+  LoggerWriter,
+  LoggerReader,
+  cacheAllIndexKeys,
+  cacheKeysFromIndex,
+} from "./modules/Logger.js";
+import {
+  loadGameHistoryMove,
+  updateSvg,
+} from "./modules/ReplayHistoryEventLoop.js";
 let aiWorker;
 let dbWorker;
 let isFatalError = false;
@@ -105,6 +114,41 @@ function createBoard(domBoard) {
       cell.updateSvg();
     });
   return domBoardState;
+}
+
+/**
+ * Creates a game board by generating a grid of cells, initializing their state,
+ * and appending them to the provided board element. Also sets up initial player positions.
+ *
+ * @param {HTMLElement} board - The CSS grid container DOM element to which the cells will be appended.
+ * @returns {BoardState} The initialized board state containing all cells.
+ * @throws {Error} If the parameters is invalid.
+ */
+function createHistoryBoard(domBoardState) {
+  const historyBoard = document
+    .getElementById("sectReplayLogger")
+    .querySelector(".board");
+  const svg1 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg1.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg1.setAttribute("viewBox", "0 0 100 100");
+  svg1.classList.add(
+    "fillColorUser",
+    "fillColorBot",
+    "fillColorDot",
+    "strokeColor"
+  );
+  const use1 = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use1.setAttribute("href", "./images/pieces.svg#tower_none");
+  svg1.appendChild(use1);
+
+  Array.from(historyBoard.children).forEach((domCell, index) => {
+    domCell.appendChild(svg1.cloneNode(true));
+  });
+  Array.from(historyBoard.children).forEach((domCell, index) => {
+    const domBoardCell = domBoardState.cells[index];
+    updateSvg(domCell, domBoardCell.svgLayout, domBoardCell.dot);
+  });
+  return historyBoard;
 }
 
 /**
@@ -287,7 +331,7 @@ function initBoardEventHandlers(
       ) {
         return;
       }
-      playUserMove(
+      await playUserMove(
         domBoardState,
         settings,
         aiWorker,
@@ -309,7 +353,7 @@ function initBoardEventHandlers(
  * @returns {void}
  */
 function initNavbarEventHandlers(domBoardState, loggerWriter, navbar) {
-  navbar.addEventListener("click", (event) => {
+  navbar.addEventListener("click", async (event) => {
     try {
       if (isFatalError) {
         return;
@@ -326,7 +370,7 @@ function initNavbarEventHandlers(domBoardState, loggerWriter, navbar) {
       ) {
         return;
       }
-      Array.from(clickedCell.classList).forEach(async (className) => {
+      for (const className of clickedCell.classList) {
         switch (className) {
           case "navbarRestart":
             resetGame(domBoardState, loggerWriter);
@@ -335,20 +379,19 @@ function initNavbarEventHandlers(domBoardState, loggerWriter, navbar) {
             window.location.hash = "#sectSettings";
             break;
           case "navbarDatabase":
-            const loggerReader = LoggerReader.instances.get(
-              loggerWriter.gameId
-            );
-            await loggerReader.createPseudoDbCursor();
-            let record = await loggerReader.fetchRecord(-1);
-            console.log("1" + record);
-            record = await loggerReader.fetchRecord(-3);
-            console.log(record);
+            if (LoggerReader.instances.size > 0) {
+              LoggerReader.currentSelectedInstance = LoggerReader.instances
+                .entries()
+                .toArray()
+                .at(-1)[1];
+              await loadGameHistoryMove(Infinity);
+            }
             window.location.hash = "#sectReplayLogger";
             break;
           default:
             break;
         }
-      });
+      }
     } catch (error) {
       console.error(error);
       throw new Error(error);
@@ -362,7 +405,7 @@ function initNavbarEventHandlers(domBoardState, loggerWriter, navbar) {
  * @param {Array<HTMLOutputElement>} outputs - All html output elements from the settings section
  * @returns {void}
  */
-async function initRangeSlidersFromDb(settings, inputs, outputs) {
+function initRangeSlidersFromDb(settings, inputs, outputs) {
   try {
     inputs.forEach((input, index) => {
       switch (input.id) {
@@ -428,6 +471,14 @@ async function initRangeSlidersFromDb(settings, inputs, outputs) {
   }
 }
 
+async function loadSettings(settings) {
+  try {
+    await settings.load();
+  } catch (error) {
+    throw new Error(JSON.stringify(error));
+  }
+}
+
 /**
  * This function:
  * - Initially loads the persistent settings from the database and updates all input values.
@@ -443,117 +494,172 @@ async function initRangeSlidersFromDb(settings, inputs, outputs) {
  * @param {Settings} settings - The Worker instance handling the db operations.
  * @returns {void}
  */
-async function initSectionSettings(settings) {
-  try {
-    /* load settings from database and init all range slider values */
-    await settings.load();
-    const domSettings = document.getElementById("sectSettings");
-    const inputs = Array.from(domSettings.getElementsByTagName("input"));
-    const outputs = Array.from(domSettings.getElementsByTagName("output"));
-    initRangeSlidersFromDb(settings, inputs, outputs);
-    domSettings.addEventListener("input", (event) => {
-      try {
-        const form = event.target.closest(".panel");
-        const inputs = Array.from(form.getElementsByTagName("input"));
-        const outputs = Array.from(form.getElementsByTagName("output"));
-        inputs.forEach((input, index) => {
-          outputs.at(index).textContent = input.value;
-        });
-      } catch (error) {
-        console.log(error);
+function initSettingsEventHandlers(settings) {
+  const domSettings = document.getElementById("sectSettings");
+  const inputs = Array.from(domSettings.getElementsByTagName("input"));
+  const outputs = Array.from(domSettings.getElementsByTagName("output"));
+  initRangeSlidersFromDb(settings, inputs, outputs);
+  domSettings.addEventListener("input", (event) => {
+    try {
+      const form = event.target.closest(".panel");
+      const inputs = Array.from(form.getElementsByTagName("input"));
+      const outputs = Array.from(form.getElementsByTagName("output"));
+      inputs.forEach((input, index) => {
+        outputs.at(index).textContent = input.value;
+      });
+    } catch (error) {
+      console.log(JSON.stringify(error));
+      throw new Error(JSON.stringify(error));
+    }
+  });
+  domSettings.addEventListener("click", async (event) => {
+    try {
+      const navIcon = event.target.closest("svg");
+      if (
+        !navIcon ||
+        (!navIcon.classList.contains("iconSave") &&
+          !navIcon.classList.contains("iconRecycle"))
+      ) {
+        return;
       }
-    });
-    domSettings.addEventListener("click", async (event) => {
+      if (navIcon.classList.contains("iconSave")) {
+        const inputs = Array.from(domSettings.getElementsByTagName("input"));
+        const newWinningRules = structuredClone(Settings.factoryWinningRules);
+        const newSearchRules = structuredClone(Settings.factorySearchRules);
+        const newMaterialAdvantageConquered = structuredClone(
+          Settings.factoryMaterialAdvantageConquered
+        );
+        const newSafetyZoneProximity = structuredClone(
+          Settings.factorySafetyZoneProximity
+        );
+        const newMaterialAdvantageAccounted = structuredClone(
+          Settings.factoryMaterialAdvantageAccounted
+        );
+        inputs.forEach((input, _) => {
+          switch (input.id) {
+            case "safetyTowers":
+              newWinningRules.settings.safetyZone = Number(input.value);
+              break;
+            case "opponentStones":
+              newWinningRules.settings.materialOpponent = Number(input.value);
+              break;
+            case "searchDepth":
+              newSearchRules.settings.depth = Number(input.value);
+              break;
+            case "searchTimeout":
+              newSearchRules.settings.timeout = Number(input.value);
+              break;
+            case "materialAdvantageConquered":
+              newMaterialAdvantageConquered.settings.totalWeight = Number(
+                input.value
+              );
+              break;
+            case "safetyZone1":
+              newSafetyZoneProximity.settings.weightRowDistance1 = Number(
+                input.value
+              );
+              break;
+            case "safetyZone2":
+              newSafetyZoneProximity.settings.weightRowDistance2 = Number(
+                input.value
+              );
+              break;
+            case "safetyZone3":
+              newSafetyZoneProximity.settings.weightRowDistance3 = Number(
+                input.value
+              );
+              break;
+            case "safetyZone4":
+              newSafetyZoneProximity.settings.weightRowDistance4 = Number(
+                input.value
+              );
+              break;
+            case "safetyZone5":
+              newSafetyZoneProximity.settings.weightRowDistance5 = Number(
+                input.value
+              );
+              break;
+            case "safetyZoneTotalWeight":
+              newSafetyZoneProximity.settings.totalWeight = Number(input.value);
+              break;
+            case "materialAdvantageAccounted":
+              newMaterialAdvantageAccounted.settings.totalWeight = Number(
+                input.value
+              );
+              break;
+            default:
+              throw new Error("unknown input element");
+          }
+        });
+        settings.winningRules = newWinningRules;
+        settings.searchRules = newSearchRules;
+        settings.materialAdvantageConquered = newMaterialAdvantageConquered;
+        settings.safetyZoneProximity = newSafetyZoneProximity;
+        settings.materialAdvantageAccounted = newMaterialAdvantageAccounted;
+        await settings.save();
+      }
+      if (navIcon.classList.contains("iconRecycle")) {
+        await settings.restoreFactoryDefault();
+        initRangeSlidersFromDb(settings, inputs, outputs);
+      }
+    } catch (error) {
+      console.log(JSON.stringify(error));
+      throw new Error(JSON.stringify(error));
+    }
+  });
+}
+
+async function loadReplayLogger() {
+  try {
+    const allIndexKeys = await cacheAllIndexKeys();
+    if (allIndexKeys) {
+      for (const gameId of allIndexKeys) {
+        const reader = new LoggerReader(gameId);
+        const keys = await cacheKeysFromIndex(gameId);
+        keys.forEach((key, _) => {
+          reader.addPrimaryKey(key);
+        });
+      }
+    }
+  } catch (error) {
+    throw new Error(JSON.stringify(structuredClone(error)));
+  }
+}
+
+/**
+ * This function:
+ * - Initially loads all game id index keys from the ReplayLogger object store
+ *   and creates all corresponding LoggerReader instances.
+ * - Adds an event handler delegator for the click event loop inside this hmtl section.
+ *   By clicking on the footer buttons, the cursor state for the
+ *   ReplayLogger object store is managed. The primary key for this current game history
+ *   gets advanced correspondingly and the moves are replayed and printed.
+ *   By clicking on the replay button on the top right, the current game is stopped and
+ *   resetted and a new game is started at this specific user's move.
+ * - By clicking on the upload button, a dialog is opened from where you can select another game history.
+ * @returns {void}
+ */
+async function initReplayLoggerEventHandlers() {
+  try {
+    const domReplayLogger = document.getElementById("sectReplayLogger");
+    domReplayLogger.addEventListener("click", async (event) => {
       try {
-        const navIcon = event.target.closest("svg");
-        if (
-          !navIcon ||
-          (!navIcon.classList.contains("iconSave") &&
-            !navIcon.classList.contains("iconRecycle"))
-        ) {
+        const icon = event.target.closest("svg");
+        const gridItem = icon.closest("div");
+        if (!icon || !gridItem || !icon.classList.contains("icon2")) {
           return;
         }
-        if (navIcon.classList.contains("iconSave")) {
-          const inputs = Array.from(domSettings.getElementsByTagName("input"));
-          const newWinningRules = structuredClone(Settings.factoryWinningRules);
-          const newSearchRules = structuredClone(Settings.factorySearchRules);
-          const newMaterialAdvantageConquered = structuredClone(
-            Settings.factoryMaterialAdvantageConquered
-          );
-          const newSafetyZoneProximity = structuredClone(
-            Settings.factorySafetyZoneProximity
-          );
-          const newMaterialAdvantageAccounted = structuredClone(
-            Settings.factoryMaterialAdvantageAccounted
-          );
-          inputs.forEach((input, _) => {
-            switch (input.id) {
-              case "safetyTowers":
-                newWinningRules.settings.safetyZone = Number(input.value);
-                break;
-              case "opponentStones":
-                newWinningRules.settings.materialOpponent = Number(input.value);
-                break;
-              case "searchDepth":
-                newSearchRules.settings.depth = Number(input.value);
-                break;
-              case "searchTimeout":
-                newSearchRules.settings.timeout = Number(input.value);
-                break;
-              case "materialAdvantageConquered":
-                newMaterialAdvantageConquered.settings.totalWeight = Number(
-                  input.value
-                );
-                break;
-              case "safetyZone1":
-                newSafetyZoneProximity.settings.weightRowDistance1 = Number(
-                  input.value
-                );
-                break;
-              case "safetyZone2":
-                newSafetyZoneProximity.settings.weightRowDistance2 = Number(
-                  input.value
-                );
-                break;
-              case "safetyZone3":
-                newSafetyZoneProximity.settings.weightRowDistance3 = Number(
-                  input.value
-                );
-                break;
-              case "safetyZone4":
-                newSafetyZoneProximity.settings.weightRowDistance4 = Number(
-                  input.value
-                );
-                break;
-              case "safetyZone5":
-                newSafetyZoneProximity.settings.weightRowDistance5 = Number(
-                  input.value
-                );
-                break;
-              case "safetyZoneTotalWeight":
-                newSafetyZoneProximity.settings.totalWeight = Number(
-                  input.value
-                );
-                break;
-              case "materialAdvantageAccounted":
-                newMaterialAdvantageAccounted.settings.totalWeight = Number(
-                  input.value
-                );
-                break;
-              default:
-                throw new Error("unknown input element");
-            }
-          });
-          settings.winningRules = newWinningRules;
-          settings.searchRules = newSearchRules;
-          settings.materialAdvantageConquered = newMaterialAdvantageConquered;
-          settings.safetyZoneProximity = newSafetyZoneProximity;
-          settings.materialAdvantageAccounted = newMaterialAdvantageAccounted;
-          await settings.save();
+        if (gridItem.classList.contains("footerReplayBackwardStep")) {
+          await loadGameHistoryMove(-1);
         }
-        if (navIcon.classList.contains("iconRecycle")) {
-          await settings.restoreFactoryDefault();
-          initRangeSlidersFromDb(settings, inputs, outputs);
+        if (gridItem.classList.contains("footerReplayBackwardFast")) {
+          await loadGameHistoryMove(-Infinity);
+        }
+        if (gridItem.classList.contains("footerReplayForwardStep")) {
+          await loadGameHistoryMove(1);
+        }
+        if (gridItem.classList.contains("footerReplayForwardFast")) {
+          await loadGameHistoryMove(Infinity);
         }
       } catch (error) {
         console.log(error);
@@ -561,6 +667,7 @@ async function initSectionSettings(settings) {
     });
   } catch (error) {
     console.log(error);
+    throw new Error(JSON.stringify(structuredClone(error)));
   }
 }
 
@@ -577,6 +684,8 @@ window.addEventListener("load", async () => {
     }
     const domBoard = document.querySelector(".board");
     const domBoardState = createBoard(domBoard);
+    LoggerReader.initialDomBoardState = domBoardState.cloneInstance();
+    LoggerReader.historyBoard = createHistoryBoard(domBoardState);
     const navbar = document.querySelector(".navbar");
     const bot = domBoardState.playerState.twoPlayer.find(
       (player) => player.id === PLAYER_ID.BOT
@@ -601,7 +710,10 @@ window.addEventListener("load", async () => {
     }
     const settings = new Settings(dbWorker);
     const loggerWriter = new LoggerWriter(domBoardState);
-    initSectionSettings(settings);
+    await loadSettings(settings);
+    initSettingsEventHandlers(settings);
+    await loadReplayLogger();
+    initReplayLoggerEventHandlers();
     initBoardEventHandlers(
       domBoard,
       domBoardState,

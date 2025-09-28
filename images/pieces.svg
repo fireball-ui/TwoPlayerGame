@@ -1,4 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+        <style>
+            * {
+                transition-property: background-color, fill, stroke, filter;
+                transition-duration: 0.8s;
+                transition-timing-function: linear;
+            }
+        </style>
+    </defs>
     <symbol id="tower_none">
         <g></g>
     </symbol>

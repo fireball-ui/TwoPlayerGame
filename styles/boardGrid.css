@@ -194,27 +194,31 @@
         position: relative;
       }
       & .navbarReturnHome {
-        grid-column: 2 / 5;
+        grid-column: 2 / 4;
+        grid-row: 1 / 3;
+      }
+      & .navbarUpload {
+        grid-column: 4 / 6;
         grid-row: 1 / 3;
       }
       & .navbarReplayMoveDisplay {
-        grid-column: 5 / 7;
+        grid-column: 6 / 8;
         grid-row: 1/3;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        & .navbarReplayMove1 {
+        & .navbarReplayMoveHundreds {
           grid-column: 1 / 2;
           grid-row: 1 / 3;
           grid-template-columns: subgrid;
           grid-template-rows: subgrid;
         }
-        & .navbarReplayMove2 {
+        & .navbarReplayMoveTens {
           grid-column: 2 / 3;
           grid-row: 1 / 3;
           grid-template-columns: subgrid;
           grid-template-rows: subgrid;
         }
-        & .navbarReplayMove3 {
+        & .navbarReplayMoveOnes {
           grid-column: 3 / 4;
           grid-row: 1 / 3;
           grid-template-columns: subgrid;
@@ -222,7 +226,7 @@
         }
       }
       & .navbarReplayCommit {
-        grid-column: 7 / 10;
+        grid-column: 8 / 10;
         grid-row: 1 / 3;
       }
     }

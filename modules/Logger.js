@@ -18,64 +18,37 @@ const LOGGER_DB_ITEMS = Object.freeze({
   INDEX_NAME: "gameId",
 });
 
-async function disposeAllDbCursors(indexValue) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const request = structuredClone(workerMessageScheme);
-      request.request.type = "disposeAllDbCursors";
-      request.request.parameter.push(indexValue);
-      const workerResponse = await dispatchWorker(
-        LoggerWriter.dbWorker,
-        request
-      );
-      handleResponse(workerResponse);
-      resolve(workerResponse.response.message);
-    } catch (error) {
-      console.log("error logger disposeCursor: " + error);
-      reject(error.toString());
-    }
-  });
+async function cacheAllIndexKeys() {
+  try {
+    const request = structuredClone(workerMessageScheme);
+    request.request.type = "getAllIndexKeys";
+    request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+    request.request.parameter.push(LOGGER_DB_ITEMS.INDEX_NAME);
+    const workerResponse = await dispatchWorker(LoggerWriter.dbWorker, request);
+    handleResponse(workerResponse);
+    return workerResponse.response.message;
+  } catch (error) {
+    console.log("error logger getAllIndexKeys: " + JSON.stringify(error));
+    throw new Error("error logger getAllIndexKeys: " + JSON.stringify(error));
+  }
 }
 
-async function getAllIndexKeys() {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const request = structuredClone(workerMessageScheme);
-      request.request.type = "getAllIndexKeys";
-      request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
-      request.request.parameter.push(LOGGER_DB_ITEMS.INDEX_NAME);
-      const workerResponse = await dispatchWorker(
-        LoggerWriter.dbWorker,
-        request
-      );
-      handleResponse(workerResponse);
-      resolve(workerResponse.response.message);
-    } catch (error) {
-      console.log("error logger getAllIndexKeys: " + error);
-      reject(error.toString());
-    }
-  });
-}
-
-async function getKeysFromIndexOnly(indexKey) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const request = structuredClone(workerMessageScheme);
-      request.request.type = "getKeysFromIndexOnly";
-      request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
-      request.request.parameter.push(LOGGER_DB_ITEMS.INDEX_NAME);
-      request.request.parameter.push(indexKey);
-      const workerResponse = await dispatchWorker(
-        LoggerWriter.dbWorker,
-        request
-      );
-      handleResponse(workerResponse);
-      resolve(workerResponse.response.message);
-    } catch (error) {
-      console.log("error logger getAllIndexKeys: " + error);
-      reject(error.toString());
-    }
-  });
+async function cacheKeysFromIndex(indexKey) {
+  try {
+    const request = structuredClone(workerMessageScheme);
+    request.request.type = "getKeysFromIndexOnly";
+    request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+    request.request.parameter.push(LOGGER_DB_ITEMS.INDEX_NAME);
+    request.request.parameter.push(indexKey);
+    const workerResponse = await dispatchWorker(LoggerWriter.dbWorker, request);
+    handleResponse(workerResponse);
+    return workerResponse.response.message;
+  } catch (error) {
+    console.log("error logger cacheKeysFromIndex: " + JSON.stringify(error));
+    throw new Error(
+      "error logger cacheKeysFromIndex: " + JSON.stringify(error)
+    );
+  }
 }
 
 /**
@@ -183,31 +156,32 @@ class LoggerWriter {
   }
 
   async #firstUpdate() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const key = Date.now();
-        const record = {
-          id: key,
-          gameId: this._gameId,
-          move: this._move,
-          boardState: structuredClone(this._boardState.cloneInstance()),
-          lastMove: null,
-        };
-        const request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
-        request.request.parameter.push(record);
-        const workerResponse = await dispatchWorker(
-          LoggerWriter.dbWorker,
-          request
-        );
-        handleResponse(workerResponse);
-        resolve();
-      } catch (error) {
-        console.log("error logger #firstUpdate" + error);
-        reject(error.toString());
-      }
-    });
+    try {
+      const key = Date.now();
+      const record = {
+        id: key,
+        gameId: this._gameId,
+        move: this._move,
+        boardState: structuredClone(LoggerReader.initialDomBoardState),
+        lastMove: null,
+      };
+      const request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+      request.request.parameter.push(record);
+      const workerResponse = await dispatchWorker(
+        LoggerWriter.dbWorker,
+        request
+      );
+      handleResponse(workerResponse);
+      LoggerReader.instances.get(this._gameId).addPrimaryKey(key);
+    } catch (error) {
+      console.log("error logger #firstUpdate" + error);
+      throw new Error(
+        "error caught in logger #firstUpdate: " +
+          JSON.stringify(structuredClone(error))
+      );
+    }
   }
 
   /**
@@ -218,55 +192,55 @@ class LoggerWriter {
    * @readonly
    */
   async update(lastMove) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (this._move === 0) {
-          const allIndexKeys = await getAllIndexKeys();
-          if (allIndexKeys.length > 9) {
-            for (let i = 0, len = allIndexKeys.length - 9; i < len; i++) {
-              const reader = LoggerReader.instances.get(allIndexKeys[i]);
-              await LoggerReader.dispose(reader);
-              let allPrimaryKeys = await getKeysFromIndexOnly(allIndexKeys[i]);
-              allPrimaryKeys.forEach(async (key) => {
-                const request = structuredClone(workerMessageScheme);
-                request.request.type = "delete";
-                request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
-                request.request.parameter.push(key);
-                const workerResponse = await dispatchWorker(
-                  LoggerWriter.dbWorker,
-                  request
-                );
-                handleResponse(workerResponse);
-              });
+    try {
+      if (this._move === 0) {
+        const allIndexKeys = await cacheAllIndexKeys();
+        if (allIndexKeys.length > 9) {
+          for (let i = 0, len = allIndexKeys.length - 9; i < len; i++) {
+            const reader = LoggerReader.instances.get(allIndexKeys[i]);
+            LoggerReader.dispose(reader);
+            let allPrimaryKeys = await cacheKeysFromIndex(allIndexKeys[i]);
+            for (const key of allPrimaryKeys) {
+              const request = structuredClone(workerMessageScheme);
+              request.request.type = "delete";
+              request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+              request.request.parameter.push(key);
+              const workerResponse = await dispatchWorker(
+                LoggerWriter.dbWorker,
+                request
+              );
+              handleResponse(workerResponse);
             }
           }
-          await this.#firstUpdate();
-          const reader = new LoggerReader(this._gameId);
         }
-        this._move++;
-        const key = Date.now();
-        const record = {
-          id: key,
-          gameId: this._gameId,
-          move: this._move,
-          boardState: structuredClone(this._boardState.cloneInstance()),
-          lastMove: structuredClone(lastMove.cloneInstance()),
-        };
-        const request = structuredClone(workerMessageScheme);
-        request.request.type = "put";
-        request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
-        request.request.parameter.push(record);
-        const workerResponse = await dispatchWorker(
-          LoggerWriter.dbWorker,
-          request
-        );
-        handleResponse(workerResponse);
-        resolve();
-      } catch (error) {
-        console.log("error logger update: " + error);
-        reject(error.toString());
+        const reader = new LoggerReader(this._gameId);
+        await this.#firstUpdate();
       }
-    });
+      this._move++;
+      const key = Date.now();
+      const record = {
+        id: key,
+        gameId: this._gameId,
+        move: this._move,
+        boardState: structuredClone(this._boardState.cloneInstance()),
+        lastMove: structuredClone(lastMove.cloneInstance()),
+      };
+      const request = structuredClone(workerMessageScheme);
+      request.request.type = "put";
+      request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+      request.request.parameter.push(record);
+      const workerResponse = await dispatchWorker(
+        LoggerWriter.dbWorker,
+        request
+      );
+      handleResponse(workerResponse);
+      LoggerReader.instances.get(this._gameId).addPrimaryKey(key);
+    } catch (error) {
+      console.log("error logger update: " + error);
+      throw new Error(
+        "error logger update: " + JSON.stringify(structuredClone(error))
+      );
+    }
   }
 }
 
@@ -285,15 +259,41 @@ class LoggerReader {
   _gameId;
 
   /**
+   * All cached primary keys for the index key of this instance.
+   * @private
+   * @type {Number[]}
+   */
+  _primaryKeys;
+
+  /**
+   * This AsyncGenerator function object acts as a pseudo db cursor state manager, because it
+   * emulates the advance() methid of the IDBCursor interface.
+   * The number of steps to advance is yielded and the
+   * index of the primaryKeys array is updated, before the next
+   * record from the object store is fetched.
+   * @private
+   * @type {AsyncGenerator}
+   */
+  _generator;
+
+  /**
    * @static
    * @type {Map<Number, LoggerReader>}
    */
   static instances = new Map();
+  static historyBoard = null;
+  static initialDomBoardState;
+  static currentSelectedInstance = null;
 
-  static async dispose(gameId) {
+  static dispose(gameId) {
     try {
       if (LoggerReader.instances.has(gameId)) {
-        await disposeAllDbCursors(gameId);
+        const reader = LoggerReader.instances.get(gameId);
+        if (reader.generator) {
+          reader.generator.return();
+          reader.generator = null;
+        }
+        reader = null;
         LoggerReader.instances.delete(gameId);
       }
     } catch (error) {
@@ -314,6 +314,8 @@ class LoggerReader {
       );
     }
     this._gameId = gameId;
+    this._primaryKeys = [];
+    this._generator = this.generatorFactory();
     LoggerReader.instances.set(this._gameId, this);
   }
 
@@ -328,44 +330,122 @@ class LoggerReader {
     return this._gameId;
   }
 
-  async createPseudoDbCursor() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const request = structuredClone(workerMessageScheme);
-        request.request.type = "createPseudoDbCursor";
-        request.request.parameter.push(this._gameId);
-        const workerResponse = await dispatchWorker(
-          LoggerWriter.dbWorker,
-          request
-        );
-        handleResponse(workerResponse);
-        resolve();
-      } catch (error) {
-        console.log("error logger createDbCursor: " + error);
-        reject(error.toString());
-      }
-    });
+  /**
+   * Gets the array containing all primary keys.
+   * @public
+   * @type {Number[]}
+   * @returns {Number[]}
+   * @readonly
+   */
+  get primaryKeys() {
+    return this._primaryKeys;
   }
 
-  async fetchRecord(steps = -1) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const request = structuredClone(workerMessageScheme);
-        request.request.type = "fetchRecordFromPseudoDbCursor";
-        request.request.parameter.push(this._gameId);
-        request.request.parameter.push(steps);
-        const workerResponse = await dispatchWorker(
-          LoggerWriter.dbWorker,
-          request
-        );
-        handleResponse(workerResponse);
-        resolve(structuredClone(workerResponse.response.message));
-      } catch (error) {
-        console.log("error logger fetchRecord: " + error);
-        reject(error.toString());
+  /**
+   * Gets the async generator function object.
+   * @public
+   * @type {AsyncGenerator}
+   * @returns {AsyncGenerator}
+   * @readonly
+   */
+  get generator() {
+    return this._generator;
+  }
+
+  /**
+   * Sets the async generator function object.
+   * @public
+   * @param {AsyncGenerator | null} value
+   */
+  set generator(value) {
+    this._generator = value;
+  }
+
+  addPrimaryKey(key) {
+    this._primaryKeys.push(key);
+  }
+
+  async *generatorFactory() {
+    try {
+      if (this.primaryKeys.length === 0) {
+        return;
       }
-    });
+      let cursorIndex = this.primaryKeys.length - 1;
+      let request = null;
+      let workerResponse = null;
+      let record = null;
+      let key = 0;
+      request = structuredClone(workerMessageScheme);
+      request.request.type = "get";
+      key = this.primaryKeys[cursorIndex];
+      request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+      request.request.parameter.push(key);
+      workerResponse = await dispatchWorker(LoggerWriter.dbWorker, request);
+      handleResponse(workerResponse);
+      record = structuredClone(workerResponse.response.message);
+      yield record;
+      while (true) {
+        const advanceSteps = yield;
+        switch (advanceSteps) {
+          case Infinity:
+            cursorIndex = this.primaryKeys.length - 1;
+            break;
+          case -Infinity:
+            cursorIndex = 0;
+            break;
+          default:
+            cursorIndex += advanceSteps;
+        }
+        if (this.primaryKeys.length === 0) {
+          return;
+        }
+        if (cursorIndex < 0) {
+          cursorIndex = 0;
+        }
+        if (cursorIndex > this.primaryKeys.length - 1) {
+          cursorIndex = this.primaryKeys.length - 1;
+        }
+        request = structuredClone(workerMessageScheme);
+        request.request.type = "get";
+        key = this.primaryKeys[cursorIndex];
+        request.request.parameter.push(LOGGER_DB_ITEMS.OBJECT_STORE);
+        request.request.parameter.push(key);
+        workerResponse = await dispatchWorker(LoggerWriter.dbWorker, request);
+        handleResponse(workerResponse);
+        record = structuredClone(workerResponse.response.message);
+        yield record;
+      }
+    } catch (error) {
+      console.log("Error in cursor generator: " + error);
+      return;
+    }
+  }
+
+  async fetchRecord(advanceSteps) {
+    try {
+      const result = await this._generator.next(advanceSteps);
+      if (result.done === true) {
+        throw new Error(
+          "error 1 in fetchRecord: Unconditional return in AsyncGenerator object"
+        );
+      }
+      await this._generator.next();
+      if (result.done === true) {
+        throw new Error(
+          "error 2 in fetchRecord: Unconditional return in AsyncGenerator object"
+        );
+      }
+      return result.value;
+    } catch (error) {
+      throw new Error("error caught in fetchRecord: " + error.toString());
+    }
   }
 }
 
-export { LOGGER_DB_ITEMS, LoggerWriter, LoggerReader };
+export {
+  LOGGER_DB_ITEMS,
+  LoggerWriter,
+  LoggerReader,
+  cacheAllIndexKeys,
+  cacheKeysFromIndex,
+};

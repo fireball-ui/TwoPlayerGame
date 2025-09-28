@@ -146,7 +146,7 @@ async function playUserMove(
     document.querySelector(".board").classList.add("filterGray");
     Sidebar.playerMap.get(player).refreshDashboard();
   } else {
-    playBotMove(domBoardState, settings, aiWorker, loggerWriter);
+    await playBotMove(domBoardState, settings, aiWorker, loggerWriter);
   }
 }
 

@@ -12,79 +12,8 @@ import { LOGGER_DB_ITEMS } from "./Logger.js";
 
 const idbFactory = self.indexedDB ?? null;
 let db = null;
-const dbVersion = 14;
+const dbVersion = 24;
 let initFromScratch = false;
-
-class PseudoCursorStateManager {
-  _indexValue;
-  _generator;
-  static instances = new Map();
-  static dispose(indexValue) {
-    try {
-      if (PseudoCursorStateManager.instances.has(indexValue)) {
-        const instance = PseudoCursorStateManager.instances.get(indexValue);
-        if (instance.generator) {
-          instance.generator.return();
-          instance.generator = null;
-        }
-        //delete instance
-        instance = null;
-        PseudoCursorStateManager.instances.delete(indexValue);
-      }
-    } catch (error) {
-      throw new Error("Error disposing cursor: " + error);
-    }
-  }
-  constructor(indexValue) {
-    this._indexValue = indexValue;
-    this._generator = null;
-    PseudoCursorStateManager.instances.set(indexValue, this);
-  }
-  get indexValue() {
-    return this._indexValue;
-  }
-  get generator() {
-    return this._generator;
-  }
-  set generator(gen) {
-    this._generator = gen;
-  }
-  async *generatorFactory() {
-    try {
-      const primaryKeys = await getKeysFromIndexOnly(
-        LOGGER_DB_ITEMS.OBJECT_STORE,
-        LOGGER_DB_ITEMS.INDEX_NAME,
-        this._indexValue
-      );
-      if (primaryKeys.length === 0) {
-        return;
-      }
-      let cursorIndex = primaryKeys.length - 1;
-      let record = await storeXact(
-        LOGGER_DB_ITEMS.OBJECT_STORE,
-        "get",
-        primaryKeys[cursorIndex]
-      );
-      yield record;
-      while (true) {
-        const advanceSteps = yield;
-        cursorIndex += advanceSteps;
-        if (cursorIndex < 0 || cursorIndex >= primaryKeys.length) {
-          return;
-        }
-        record = await storeXact(
-          LOGGER_DB_ITEMS.OBJECT_STORE,
-          "get",
-          primaryKeys[cursorIndex]
-        );
-        yield record;
-      }
-    } catch (error) {
-      console.log("Error in cursor generator: " + error);
-      return;
-    }
-  }
-}
 
 async function getKeysFromIndexOnly(objStoreName, indexName, indexKey) {
   return new Promise((resolve, reject) => {
@@ -295,7 +224,6 @@ self.addEventListener("message", async (event) => {
         response.response.message = null;
         self.postMessage(response);
         break;
-
       case "get":
         const recordGet = await storeXact(
           event.data.request.parameter[0],
@@ -306,7 +234,6 @@ self.addEventListener("message", async (event) => {
         response.response.message = recordGet;
         self.postMessage(response);
         break;
-
       case "put":
         const key = await storeXact(
           event.data.request.parameter[0],
@@ -346,49 +273,6 @@ self.addEventListener("message", async (event) => {
         );
         response.response.error = false;
         response.response.message = allPrimaryKeys;
-        self.postMessage(response);
-        break;
-      case "disposeAllDbCursors":
-        PseudoCursorStateManager.dispose(event.data.request.parameter[0]);
-        response.response.error = false;
-        response.response.message = event.data.request.parameter[0];
-        self.postMessage(response);
-        break;
-      case "createPseudoDbCursor":
-        const manager = new PseudoCursorStateManager(
-          event.data.request.parameter[0]
-        );
-        response.response.error = false;
-        response.response.message = event.data.request.parameter[0];
-        console.log("Created DbCursor for index value: " + manager.indexValue);
-        self.postMessage(response);
-        break;
-      case "fetchRecordFromPseudoDbCursor":
-        if (
-          !PseudoCursorStateManager.instances.has(
-            event.data.request.parameter[0]
-          )
-        ) {
-          throw new Error("no cursor for index value");
-        }
-        const instance = PseudoCursorStateManager.instances.get(
-          event.data.request.parameter[0]
-        );
-        if (instance.generator === null) {
-          instance.generator = instance.generatorFactory();
-        }
-        response.response.error = false;
-        const result = await instance.generator.next(
-          event.data.request.parameter[1]
-        );
-        if (result.done === true) {
-          instance.generator.return();
-          instance.generator = null;
-          response.response.message = null;
-        } else {
-          response.response.message = result.value;
-          await instance.generator.next();
-        }
         self.postMessage(response);
         break;
       default:
