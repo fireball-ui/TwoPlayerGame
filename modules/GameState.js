@@ -1090,6 +1090,14 @@ class Sidebar {
   _container;
 
   /**
+   * Flag indicating whether this sidebar is located in the hsitory board for game replay.
+   * @private
+   * @type {boolean}
+   * @readonly
+   */
+  _history;
+
+  /**
    * The html child element for the player's theme background.
    * @private
    * @type {HTMLDivElement}
@@ -1194,11 +1202,26 @@ class Sidebar {
   _vaultDigit;
 
   /**
-   * A WeakMap mapping the player instance.
+   * The html child element containing the hand pointer up icon for marking the current active player.
+   * @private
+   * @type {HTMLDivElement}
+   * @readonly
+   */
+  _handPointer;
+
+  /**
+   * A WeakMap mapping the player instance for the live game sidebars.
    * @static
    * @type {WeakMap<Player, Sidebar>|null}
    */
   static playerMap = new WeakMap();
+
+  /**
+   * A WeakMap mapping the player instance for the history board sidebars.
+   * @static
+   * @type {WeakMap<Player, Sidebar>|null}
+   */
+  static playerMapHistory = new WeakMap();
   /**
    * Creates a new GridCell instance.
    * @constructor
@@ -1207,7 +1230,7 @@ class Sidebar {
    * @throws {TypeError} - On invalid parameter types.
    * @throws {Error} - On invalid div child elements.
    */
-  constructor(player, container) {
+  constructor(player, container, history) {
     try {
       if (
         !(player instanceof Player) ||
@@ -1217,6 +1240,7 @@ class Sidebar {
       }
       this._player = player;
       this._container = container;
+      this._history = history;
       Array.from(container.children).forEach((divElem) => {
         if (!(divElem instanceof HTMLDivElement)) {
           throw new TypeError("invalid parameter");
@@ -1253,6 +1277,8 @@ class Sidebar {
             case "vaultDigit":
               this._vaultDigit = divElem;
               break;
+            case "handPointer":
+              this._handPointer = divElem;
           }
         });
       });
@@ -1263,7 +1289,8 @@ class Sidebar {
         !this._safetyDigit ||
         !this._vaultTile ||
         !this._vaultOpponent ||
-        !this._vaultDigit
+        !this._vaultDigit ||
+        !this._handPointer
       ) {
         throw new Error("invalid div element for sidebar");
       }
@@ -1279,10 +1306,34 @@ class Sidebar {
       ) {
         throw new Error("invalid svg element for sidebar");
       }
-      Sidebar.playerMap.set(this._player, this);
+      if (history) {
+        Sidebar.playerMapHistory.set(this._player, this);
+      } else {
+        Sidebar.playerMap.set(this._player, this);
+      }
     } catch (error) {
       console.error(error);
     }
+  }
+
+  /**
+   * Mark the active player's sidebar with a border.
+   *
+   * @returns {void}
+   * @throws {Error} On ...
+   */
+  markDashboard() {
+    this._handPointer.querySelector("svg").classList.remove("svgHide");
+  }
+
+  /**
+   * Unmark the active player's sidebar with a border.
+   *
+   * @returns {void}
+   * @throws {Error} On ...
+   */
+  unmarkDashboard() {
+    this._handPointer.querySelector("svg").classList.add("svgHide");
   }
 
   /**
@@ -1292,17 +1343,19 @@ class Sidebar {
    * @throws {Error} On ...
    */
   refreshDashboard() {
-    Array.from(this._vaultDigit.children).forEach((svgElem) => {
-      svgElem.classList.add("svgHide");
-    });
-    let name = `.digit${this._player.vault.opponent}`;
-    this._vaultDigit.querySelector(name).classList.remove("svgHide");
+    this._vaultDigit
+      .querySelector("svg > use")
+      .setAttribute(
+        "href",
+        `./images/icons.svg#icon_digit_${this._player.vault.opponent}`
+      );
 
-    Array.from(this._safetyDigit.children).forEach((svgElem) => {
-      svgElem.classList.add("svgHide");
-    });
-    name = `.digit${this._player.safetyTower}`;
-    this._safetyDigit.querySelector(name).classList.remove("svgHide");
+    this._safetyDigit
+      .querySelector("svg > use")
+      .setAttribute(
+        "href",
+        `./images/icons.svg#icon_digit_${this._player.safetyTower}`
+      );
 
     if (this._player.lastHorizontal === true) {
       this._svgHorizontalMove.classList.remove("svgHide");

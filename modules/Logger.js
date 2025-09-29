@@ -234,7 +234,9 @@ class LoggerWriter {
         request
       );
       handleResponse(workerResponse);
-      LoggerReader.instances.get(this._gameId).addPrimaryKey(key);
+      const reader = LoggerReader.instances.get(this._gameId);
+      reader.addPrimaryKey(key);
+      reader.updateScrollItemElements();
     } catch (error) {
       console.log("error logger update: " + error);
       throw new Error(
@@ -277,6 +279,30 @@ class LoggerReader {
   _generator;
 
   /**
+   * The winner of this logged game (if any).
+   * This info will be displayed in the dialog modal.
+   * @private
+   * @type {String}
+   */
+  _winner;
+
+  /**
+   * The number of moves for this logged game.
+   * This info will be displayed in the dialog modal.
+   * @private
+   * @type {Number}
+   */
+  _move;
+
+  /**
+   * The html scroll item container element inside the dialog
+   * containing the instance properties for game replay selection.
+   * @private
+   * @type {HTMLDivElement}
+   */
+  _scrollItem;
+
+  /**
    * @static
    * @type {Map<Number, LoggerReader>}
    */
@@ -284,6 +310,10 @@ class LoggerReader {
   static historyBoard = null;
   static initialDomBoardState;
   static currentSelectedInstance = null;
+  static playerHistoryUser = null;
+  static playerHistoryBot = null;
+  static scrollItemTemplate = null;
+  static scrollContainer = null;
 
   static dispose(gameId) {
     try {
@@ -293,6 +323,8 @@ class LoggerReader {
           reader.generator.return();
           reader.generator = null;
         }
+        reader._scrollItem.remove();
+        reader._scrollItem = null;
         reader = null;
         LoggerReader.instances.delete(gameId);
       }
@@ -308,15 +340,30 @@ class LoggerReader {
    * @param {Number} gameId - The gameId index key value of the ReplayLog object store.
    */
   constructor(gameId) {
-    if (!LoggerWriter.dbWorker || !(LoggerWriter.dbWorker instanceof Worker)) {
-      throw new Error(
-        "LoggerReader: invalid web worker instance for db requests"
+    try {
+      if (
+        !LoggerWriter.dbWorker ||
+        !(LoggerWriter.dbWorker instanceof Worker)
+      ) {
+        throw new Error(
+          "LoggerReader: invalid web worker instance for db requests"
+        );
+      }
+      this._gameId = gameId;
+      this._primaryKeys = [];
+      this._generator = this.generatorFactory();
+      this._winner = "none";
+      this._move = 0;
+      const fragment = LoggerReader.scrollItemTemplate.content.cloneNode(true);
+      LoggerReader.scrollContainer.appendChild(fragment);
+      this._scrollItem = Array.from(LoggerReader.scrollContainer.children).at(
+        -1
       );
+      this.updateScrollItemElements();
+      LoggerReader.instances.set(this._gameId, this);
+    } catch (error) {
+      console.error(error.message);
     }
-    this._gameId = gameId;
-    this._primaryKeys = [];
-    this._generator = this.generatorFactory();
-    LoggerReader.instances.set(this._gameId, this);
   }
 
   /**
@@ -359,6 +406,70 @@ class LoggerReader {
    */
   set generator(value) {
     this._generator = value;
+  }
+
+  /**
+   * Gets the winner for this logged game history.
+   * @public
+   * @type {String}
+   * @returns {String}
+   * @readonly
+   */
+  get winner() {
+    return this._winner;
+  }
+
+  /**
+   * Sets the winner for this logged game history.
+   * @public
+   * @param {String} value
+   */
+  set winner(value) {
+    this._winner = value;
+  }
+
+  /**
+   * Gets the number of played moves for this logged game history.
+   * @public
+   * @type {Number}
+   * @returns {Number}
+   * @readonly
+   */
+  get move() {
+    return this._move;
+  }
+
+  /**
+   * Sets the number of played moves for this logged game history.
+   * @public
+   * @param {Number} value
+   */
+  set move(value) {
+    this._move = value;
+  }
+
+  /**
+   * Gets the html scroll item container element inside the dialog.
+   * @public
+   * @type {HTMLDivElement}
+   * @returns {HTMLDivElement}
+   * @readonly
+   */
+  get scrollItem() {
+    return this._scrollItem;
+  }
+
+  updateScrollItemElements() {
+    this._scrollItem.setAttribute("data-db-key", String(this._gameId));
+    this._scrollItem.querySelector(".headerCaption").innerText =
+      "view and replay this game";
+    this._scrollItem.querySelector(".gameStarted").innerText =
+      "started: " + this._gameId.toString();
+    this._scrollItem.querySelector(".totalMoves").innerText =
+      "total moves: " + String(this._move);
+    this._scrollItem.querySelector(".winnerIs").innerText =
+      "winner: " + this._winner;
+    this._scrollItem.querySelector(".selectGameId").innerHTML = "select";
   }
 
   addPrimaryKey(key) {

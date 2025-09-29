@@ -23,7 +23,7 @@ import { getLocalMoves } from "./GameLogic.js";
  * @returns {void}
  */
 function handleHoveredCellIn(hoveredCell, domBoardState, currentPlayer) {
-  const markedCells = document.querySelectorAll(".mark");
+  const markedCells = document.querySelectorAll("#sectHome .board .mark");
   if (markedCells.length > 0) {
     return;
   }
@@ -62,7 +62,7 @@ function prepareMoveForCell(clickedCell) {
   if (clickedCell.domEl.classList.contains("select")) {
     clickedCell.removeClass("select");
     clickedCell.addClass("mark");
-    document.querySelectorAll(".hover").forEach((cell) => {
+    document.querySelectorAll("#sectHome .board .hover").forEach((cell) => {
       cell.classList.remove("hover");
       cell.classList.add("click");
     });
@@ -81,7 +81,7 @@ function prepareMoveForCell(clickedCell) {
 function discardMoveForCell(clickedCell) {
   if (clickedCell.domEl.classList.contains("mark")) {
     clickedCell.domEl.classList.remove("mark");
-    document.querySelectorAll(".click").forEach((cell) => {
+    document.querySelectorAll("#sectHome .board .click").forEach((cell) => {
       cell.classList.remove("click");
     });
     return true;
@@ -114,7 +114,7 @@ function enableBoardEvents(domBoardState) {
  * @returns {void}
  */
 function discardBoardAnimations() {
-  document.querySelectorAll(".boardCell").forEach((cell) => {
+  document.querySelectorAll("#sectHome .boardCell").forEach((cell) => {
     cell.classList.remove("select", "hover", "mark", "click");
   });
 }
@@ -128,24 +128,36 @@ async function playUserMove(
 ) {
   // Main game event loop starts here
   const markedCell = domBoardState.mapDomElement.get(
-    document.querySelector(".mark")
+    document.querySelector("#sectHome .board .mark")
   );
   // Play move, update BoardState, update Sidebar and turn player
   domBoardState.applyMoveAndTurn(markedCell, clickedCell);
-  await loggerWriter.update(
-    new Move(markedCell, clickedCell, domBoardState.playerState)
-  );
+  // await loggerWriter.update(
+  //   new Move(markedCell, clickedCell, domBoardState.playerState)
+  // );
   disableBoardEvents(domBoardState);
   discardBoardAnimations();
-  let player = domBoardState.playerState.twoPlayer.find(
+  const playerUser = domBoardState.playerState.twoPlayer.find(
     (player) => player.turn === false
   );
-  Sidebar.playerMap.get(player).refreshDashboard();
+  const playerBot = domBoardState.playerState.twoPlayer.find(
+    (player) => player.turn === true
+  );
+  Sidebar.playerMap.get(playerUser).refreshDashboard();
   // interactive player has won?
-  if (checkWin(domBoardState, player, settings)) {
+  if (checkWin(domBoardState, playerUser, settings)) {
+    await loggerWriter.update(
+      new Move(markedCell, clickedCell, domBoardState.playerState)
+    );
     document.querySelector(".board").classList.add("filterGray");
-    Sidebar.playerMap.get(player).refreshDashboard();
+    Sidebar.playerMap.get(playerUser).refreshDashboard();
   } else {
+    await loggerWriter.update(
+      new Move(markedCell, clickedCell, domBoardState.playerState)
+    );
+    // mark dashboard
+    Sidebar.playerMap.get(playerUser).unmarkDashboard();
+    Sidebar.playerMap.get(playerBot).markDashboard();
     await playBotMove(domBoardState, settings, aiWorker, loggerWriter);
   }
 }
@@ -235,21 +247,33 @@ async function playBotMove(domBoardState, settings, aiWorker, loggerWriter) {
   await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
   // apply move
   domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
-  await loggerWriter.update(
-    new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
-  );
+  // await loggerWriter.update(
+  //   new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
+  // );
   // remove css classes for cleanup and animation of this bot's move
   moveBotSrcInst.domEl.classList.remove("select");
   moveBotTgtInst.domEl.classList.remove("hover");
-  const player = domBoardState.playerState.twoPlayer.find(
+  const playerBot = domBoardState.playerState.twoPlayer.find(
     (player) => player.turn === false
   );
-  Sidebar.playerMap.get(player).refreshDashboard();
+  const playerUser = domBoardState.playerState.twoPlayer.find(
+    (player) => player.turn === true
+  );
+  Sidebar.playerMap.get(playerBot).refreshDashboard();
   domBoardState.waitForWebWorker = false;
-  if (checkWin(domBoardState, player, settings)) {
+  if (checkWin(domBoardState, playerBot, settings)) {
+    await loggerWriter.update(
+      new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
+    );
     document.querySelector(".board").classList.add("filterGray");
-    Sidebar.playerMap.get(player).refreshDashboard();
+    Sidebar.playerMap.get(playerBot).refreshDashboard();
   } else {
+    await loggerWriter.update(
+      new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
+    );
+    // mark dashboard
+    Sidebar.playerMap.get(playerUser).markDashboard();
+    Sidebar.playerMap.get(playerBot).unmarkDashboard();
     // Enable board events for the next move
     enableBoardEvents(domBoardState);
   }

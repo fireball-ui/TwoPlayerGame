@@ -1,0 +1,47 @@
+#sectReplayLogger {
+  & dialog::backdrop {
+    background-color: light-dark(var(--light-bg-color1), var(--dark-bg-color1));
+    backdrop-filter: blur(0.5rem);
+  }
+  & dialog {
+    /* 
+    The two dimensional grid and scroll container 
+    for navigating the control panels. 
+  */
+    & main {
+      width: 80vw;
+      height: 80vh;
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      overflow: auto;
+      scroll-snap-type: y mandatory;
+      overscroll-behavior-x: none;
+      overscroll-behavior-y: none;
+      /* The current snapped scroll item. 
+       This is a html form element where you can adjust 
+       the settings via input slider elements */
+      & .panelGameId {
+        scroll-snap-align: center;
+        width: inherit;
+        height: inherit;
+        background-color: light-dark(
+          var(--light-tile-color1),
+          var(--dark-tile-color1)
+        );
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        /* 
+        Alternate background colors for the scroll items.
+      */
+        &:nth-child(even) {
+          background-color: light-dark(
+            var(--light-tile-color2),
+            var(--dark-tile-color2)
+          );
+        }
+      }
+    }
+  }
+}

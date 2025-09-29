@@ -43,6 +43,7 @@ import {
 import {
   loadGameHistoryMove,
   updateSvg,
+  dialogBtnEventHandler,
 } from "./modules/ReplayHistoryEventLoop.js";
 let aiWorker;
 let dbWorker;
@@ -160,8 +161,8 @@ function createHistoryBoard(domBoardState) {
  * @returns {Promise<void>}
  *
  */
-function createSidebar(player, anchor) {
-  const sidebar = new Sidebar(player, anchor);
+function createSidebar(player, anchor, history) {
+  const sidebar = new Sidebar(player, anchor, history);
 }
 
 /**
@@ -193,8 +194,10 @@ function resetGame(domBoardState, loggerWriter) {
   domBoardState.playerState.twoPlayer.forEach((player) => {
     if (player.id === PLAYER_ID.BOT) {
       player.turn = false;
+      Sidebar.playerMap.get(player).unmarkDashboard();
     } else {
       player.turn = true;
+      Sidebar.playerMap.get(player).markDashboard();
     }
     player.lastHorizontal = false;
     player.safetyTower = 0;
@@ -622,6 +625,7 @@ async function loadReplayLogger() {
       }
     }
   } catch (error) {
+    console.error(error.message);
     throw new Error(JSON.stringify(structuredClone(error)));
   }
 }
@@ -661,13 +665,26 @@ async function initReplayLoggerEventHandlers() {
         if (gridItem.classList.contains("footerReplayForwardFast")) {
           await loadGameHistoryMove(Infinity);
         }
+        if (gridItem.classList.contains("navbarUploadModal")) {
+          const dialogForGameReplay = gridItem.querySelector("dialog");
+          if (!dialogForGameReplay) {
+            throw new Error("cannot relocate dialog element");
+          }
+          dialogForGameReplay.showModal();
+        }
       } catch (error) {
-        console.log(error);
+        console.error(error.message);
       }
     });
+    const gameReplayScrollContainer = document.querySelector(
+      "#sectReplayLogger .navbarUploadModal dialog main"
+    );
+    if (!gameReplayScrollContainer) {
+      throw new Error("cannot relocate scroll container for dialog element");
+    }
+    gameReplayScrollContainer.addEventListener("click", dialogBtnEventHandler);
   } catch (error) {
-    console.log(error);
-    throw new Error(JSON.stringify(structuredClone(error)));
+    console.error(error.message);
   }
 }
 
@@ -686,6 +703,12 @@ window.addEventListener("load", async () => {
     const domBoardState = createBoard(domBoard);
     LoggerReader.initialDomBoardState = domBoardState.cloneInstance();
     LoggerReader.historyBoard = createHistoryBoard(domBoardState);
+    LoggerReader.scrollItemTemplate = document.querySelector(
+      "#sectReplayLogger .navbarUploadModal template"
+    );
+    LoggerReader.scrollContainer = document.querySelector(
+      "#sectReplayLogger .navbarUploadModal main"
+    );
     const navbar = document.querySelector(".navbar");
     const bot = domBoardState.playerState.twoPlayer.find(
       (player) => player.id === PLAYER_ID.BOT
@@ -693,8 +716,33 @@ window.addEventListener("load", async () => {
     const user = domBoardState.playerState.twoPlayer.find(
       (player) => player.id === PLAYER_ID.USER
     );
-    createSidebar(bot, document.querySelector(".sidebarBot"));
-    createSidebar(user, document.querySelector(".sidebarUser"));
+    createSidebar(bot, document.querySelector("#sectHome .sidebarBot"), false);
+    createSidebar(
+      user,
+      document.querySelector("#sectHome .sidebarUser"),
+      false
+    );
+    Sidebar.playerMap.get(user).markDashboard();
+    Sidebar.playerMap.get(bot).unmarkDashboard();
+    const playerStateHistory = createPlayer();
+    const botHistory = playerStateHistory.twoPlayer.find(
+      (player) => player.id === PLAYER_ID.BOT
+    );
+    const userHistory = playerStateHistory.twoPlayer.find(
+      (player) => player.id === PLAYER_ID.USER
+    );
+    createSidebar(
+      botHistory,
+      document.querySelector("#sectReplayLogger .sidebarBot"),
+      true
+    );
+    createSidebar(
+      userHistory,
+      document.querySelector("#sectReplayLogger .sidebarUser"),
+      true
+    );
+    LoggerReader.playerHistoryBot = botHistory;
+    LoggerReader.playerHistoryUser = userHistory;
     aiWorker = new Worker("./modules/AiWorker.js", { type: "module" });
     dbWorker = new Worker("./modules/DbWorker.js", { type: "module" });
     LoggerWriter.dbWorker = dbWorker;

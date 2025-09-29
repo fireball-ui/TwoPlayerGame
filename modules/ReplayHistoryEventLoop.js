@@ -5,6 +5,7 @@
  */
 
 import { LoggerReader } from "./Logger.js";
+import { PLAYER_ID, Sidebar } from "./GameState.js";
 
 async function loadGameHistoryMove(advanceSteps) {
   try {
@@ -42,40 +43,115 @@ async function loadGameHistoryMove(advanceSteps) {
       moveTgtDomCell.classList.add("click");
     }
     prettifyMoveNumber(record.move);
+    refreshSidebars(record.boardState._playerState);
   } catch (error) {
+    console.error(error.message);
     throw new Error(JSON.stringify(structuredClone(error)));
   }
 }
 
 function updateSvg(domEl, svgLayout, dot) {
-  let svgLayoutString;
-  if (svgLayout.length === 0) {
-    svgLayoutString = "none";
-  } else {
-    svgLayoutString = svgLayout.join("_");
-    if (dot === true) {
-      svgLayoutString += "_dot";
+  try {
+    let svgLayoutString;
+    if (svgLayout.length === 0) {
+      svgLayoutString = "none";
+    } else {
+      svgLayoutString = svgLayout.join("_");
+      if (dot === true) {
+        svgLayoutString += "_dot";
+      }
     }
+    const svgSymbol = `tower_${svgLayoutString}`;
+    domEl
+      .querySelector("use")
+      .setAttribute("href", `./images/pieces.svg#${svgSymbol}`);
+  } catch (error) {
+    console.error(error.message);
+    throw new Error(JSON.stringify(structuredClone(error)));
   }
-  const svgSymbol = `tower_${svgLayoutString}`;
-  domEl
-    .querySelector("use")
-    .setAttribute("href", `./images/pieces.svg#${svgSymbol}`);
 }
 
 function prettifyMoveNumber(moveNo) {
-  const hundreds = Math.floor(moveNo / 100);
-  const tens = Math.floor((moveNo % 100) / 10);
-  const ones = moveNo % 10;
-  document
-    .querySelector(".navbarReplayMoveHundreds > svg > use")
-    .setAttribute("href", `./images/icons.svg#icon_digit_${hundreds}`);
-  document
-    .querySelector(".navbarReplayMoveTens > svg > use")
-    .setAttribute("href", `./images/icons.svg#icon_digit_${tens}`);
-  document
-    .querySelector(".navbarReplayMoveOnes > svg > use")
-    .setAttribute("href", `./images/icons.svg#icon_digit_${ones}`);
+  try {
+    const hundreds = Math.floor(moveNo / 100);
+    const tens = Math.floor((moveNo % 100) / 10);
+    const ones = moveNo % 10;
+    document
+      .querySelector(".navbarReplayMoveHundreds > svg > use")
+      .setAttribute("href", `./images/icons.svg#icon_digit_${hundreds}`);
+    document
+      .querySelector(".navbarReplayMoveTens > svg > use")
+      .setAttribute("href", `./images/icons.svg#icon_digit_${tens}`);
+    document
+      .querySelector(".navbarReplayMoveOnes > svg > use")
+      .setAttribute("href", `./images/icons.svg#icon_digit_${ones}`);
+  } catch (error) {
+    console.error(error.message);
+    throw new Error(JSON.stringify(structuredClone(error)));
+  }
 }
 
-export { loadGameHistoryMove, updateSvg };
+function refreshSidebars(playerState) {
+  try {
+    const logRecordDataUser = playerState._twoPlayer.find(
+      (player, _) => player._id === PLAYER_ID.USER
+    );
+    const logRecordDataBot = playerState._twoPlayer.find(
+      (player, _) => player._id === PLAYER_ID.BOT
+    );
+    const playerUser = LoggerReader.playerHistoryUser;
+    const playerBot = LoggerReader.playerHistoryBot;
+    playerUser.turn = logRecordDataUser._turn;
+    playerUser.lastHorizontal = logRecordDataUser._lastHorizontal;
+    playerUser.safetyTower = logRecordDataUser._safetyTower;
+    playerUser.vault = logRecordDataUser._vault;
+    playerUser.winner = logRecordDataUser._winner;
+    playerBot.turn = logRecordDataBot._turn;
+    playerBot.lastHorizontal = logRecordDataBot._lastHorizontal;
+    playerBot.safetyTower = logRecordDataBot._safetyTower;
+    playerBot.vault = logRecordDataBot._vault;
+    playerBot.winner = logRecordDataBot._winner;
+    Sidebar.playerMapHistory.get(playerUser).refreshDashboard();
+    Sidebar.playerMapHistory.get(playerBot).refreshDashboard();
+    if (playerUser.turn === false) {
+      Sidebar.playerMapHistory.get(playerUser).markDashboard();
+      Sidebar.playerMapHistory.get(playerBot).unmarkDashboard();
+    } else {
+      Sidebar.playerMapHistory.get(playerBot).markDashboard();
+      Sidebar.playerMapHistory.get(playerUser).unmarkDashboard();
+    }
+  } catch (error) {
+    console.error(error.message);
+    throw new Error(JSON.stringify(structuredClone(error)));
+  }
+}
+
+async function dialogBtnEventHandler(event) {
+  try {
+    const btn = event.target.closest(".selectGameId");
+    if (!btn || !(btn instanceof HTMLButtonElement)) {
+      return;
+    }
+    const panel = btn.closest(".panelGameId");
+    if (!panel || !(panel instanceof HTMLDivElement)) {
+      throw new Error("cannot relocate scroll itemn panel for game replay");
+    }
+    const dialog = panel.closest("dialog");
+    if (!dialog || !dialog instanceof HTMLDialogElement) {
+      throw new Error("cannot relocate dialog element for game replay");
+    }
+    let gameId = panel.getAttribute("data-db-key");
+    if (!gameId || isNaN(gameId)) {
+      dialog.close();
+      return;
+    }
+    gameId = Number(gameId);
+    LoggerReader.currentSelectedInstance = LoggerReader.instances.get(gameId);
+    await loadGameHistoryMove(Infinity);
+    dialog.close();
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+
+export { loadGameHistoryMove, updateSvg, dialogBtnEventHandler };
