@@ -135,7 +135,7 @@ function getTerminalNodeState(boardState, depth) {
       // by applying the final weight for the total difference.
       if (cachedSettingsState.winningRules.settings.safetyZone > 0) {
         score +=
-          (botTowerSafetyWeight - userTowerSafetyWeight) *
+          (botTowerSafetyWeight - 2 * userTowerSafetyWeight) *
           cachedSettingsState.safetyZoneProximity.settings.totalWeight;
       }
       // Increase the heuristic score for Accounted Material Advantage
