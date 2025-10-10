@@ -64,7 +64,7 @@ class Settings {
    */
   static factoryWinningRules = Object.freeze({
     id: "WinningRules",
-    settings: { safetyZone: 1, materialOpponent: 6 },
+    settings: { safetyZone: 1, materialOpponent: 6, maxStackSize: 3 },
   });
 
   /**
@@ -82,7 +82,7 @@ class Settings {
    */
   static factoryMaterialAdvantageConquered = Object.freeze({
     id: "MaterialAdvantageConquered",
-    settings: { totalWeight: 10 },
+    settings: { totalWeight: 70 },
   });
 
   /**
@@ -92,11 +92,11 @@ class Settings {
   static factorySafetyZoneProximity = Object.freeze({
     id: "SafetyZoneProximity",
     settings: {
-      weightRowDistance1: 5,
-      weightRowDistance2: 4,
-      weightRowDistance3: 3,
-      weightRowDistance4: 2,
-      weightRowDistance5: 1,
+      weightRowDistance1: 10,
+      weightRowDistance2: 10,
+      weightRowDistance3: 8,
+      weightRowDistance4: 7,
+      weightRowDistance5: 7,
       totalWeight: 10,
     },
   });
@@ -107,7 +107,7 @@ class Settings {
    */
   static factoryMaterialAdvantageAccounted = Object.freeze({
     id: "MaterialAdvantageAccounted",
-    settings: { totalWeight: 20 },
+    settings: { totalWeight: 40 },
   });
 
   /**

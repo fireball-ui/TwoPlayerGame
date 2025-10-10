@@ -269,54 +269,63 @@
       </header>
       <main>
         <form class="panel">
-          <h1>Game Rules Configuration</h1>
-          <br />
-          <p>
-            Adjust the winning rules. A player wins if no more opponent towers
-            are left on the board, or if one of these next conditons are
-            fulfilled.
+          <div class="panelIntro">
+            <h1>Game Rules Configuration</h1>
             <br />
-            <br />
-          </p>
+            <p>
+              Adjust additional winning rules.
+              <br />
+              <br />
+              Adjust the max stack size of a tower.
+              <br />
+              <br />
+            </p>
+          </div>
         </form>
         <form class="panel">
-          <h1>Search Tree Configuration</h1>
-          <br />
-          <p>
-            Adjust the search tree depth for the Minimax/Alpha-Beta Pruning
-            algorithm
+          <div class="panelIntro">
+            <h1>Search Tree Configuration</h1>
             <br />
-            <br />
-          </p>
+            <p>
+              Adjust the search tree depth and timeout value for the AI worker
+              thread.
+              <br />
+              <br />
+            </p>
+          </div>
         </form>
         <form class="panel">
-          <h1>Safety Zone Proximity heuristic score algorithm</h1>
-          <br />
-          <p>
-            Exactly one of these weights gets applied for every tower on the
-            board in reverse movement. A lower distance (number of rows) to
-            reach the safety zone may imply a higher score.
+          <div class="panelIntro">
+            <h1>Safety Zone Proximity heuristic score algorithm</h1>
             <br />
-            <br />
-          </p>
+            <p>
+              Exactly one of these weights gets applied for every tower on the
+              board in reverse movement. Subsequently, these summed weights are
+              multiplicated with the total weight factor and (for a more
+              defensive strategy) the minimizing player factor.
+              <br />
+              <br />
+            </p>
+          </div>
         </form>
         <form class="panel">
-          <h1>Material Advantage heuristic score algorithm</h1>
-          <br />
-          <p>
-            These weights apply to the difference of the total number of owning
-            material between the maximizing player (bot) and the minimizing
-            player (user).
+          <div class="panelIntro">
+            <h1>Material Advantage heuristic score algorithm</h1>
             <br />
-            <br />
-          </p>
+            <p>
+              These weights apply to the difference of the total number of
+              owning material between the maximizing player (bot) and the
+              minimizing player (user).
+              <br />
+              <br />
+            </p>
+          </div>
         </form>
-
         <form class="panel">
           <div class="slider">
             <fieldset>
               <label for="safetyTowers"
-                >towers that reached the safety zone</label
+                >towers that reached the safety zone winning rule</label
               >
               <input
                 type="range"
@@ -328,6 +337,21 @@
             </fieldset>
             <output for="safetyTowers"></output>
           </div>
+          <div class="slider">
+            <fieldset>
+              <label for="opponentStones"
+                >opponent pieces conquered winning rule</label
+              >
+              <input
+                type="range"
+                id="opponentStones"
+                name="opponentStones"
+                min="0"
+                max="6"
+              />
+            </fieldset>
+            <output for="opponentStones"></output>
+          </div>
         </form>
         <form class="panel">
           <div class="slider">
@@ -338,7 +362,7 @@
                 id="searchDepth"
                 name="searchDepth"
                 min="1"
-                max="10"
+                max="5"
               />
             </fieldset>
             <output for="searchDepth"></output>
@@ -439,20 +463,19 @@
             <output for="materialAdvantageConquered"></output>
           </div>
         </form>
-
         <form class="panel">
           <div class="slider">
             <fieldset>
-              <label for="opponentStones">opponent stones conquered</label>
+              <label for="maxStackSize">max stack size for a tower piece</label>
               <input
                 type="range"
-                id="opponentStones"
-                name="opponentStones"
-                min="0"
-                max="6"
+                id="maxStackSize"
+                name="maxStackSize"
+                min="1"
+                max="3"
               />
             </fieldset>
-            <output for="opponentStones"></output>
+            <output for="maxStackSize"></output>
           </div>
         </form>
         <form class="panel">
@@ -464,7 +487,7 @@
                 id="searchTimeout"
                 name="searchTimeout"
                 min="1"
-                max="20"
+                max="50"
               />
             </fieldset>
             <output for="searchTimeout"></output>
@@ -520,27 +543,17 @@
             <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
               <use href="./images/icons.svg#icon_upload"></use>
             </svg>
-            <dialog>
+            <dialog class="dialogUploadModal">
               <main>
                 <template>
                   <div class="panelGameId" data-db-key="">
-                    <ul>
-                      <li>
-                        <p class="headerCaption"></p>
-                      </li>
-                      <li>
-                        <p class="gameStarted"></p>
-                      </li>
-                      <li>
-                        <p class="totalMoves"></p>
-                      </li>
-                      <li>
-                        <p class="winnerIs"></p>
-                      </li>
-                      <li>
-                        <button class="selectGameId"></button>
-                      </li>
-                    </ul>
+                    <div class="panelIntro">
+                      <p class="headerCaption"></p>
+                      <p class="gameStarted"></p>
+                      <p class="totalMoves"></p>
+                      <p class="winnerIs"></p>
+                      <button class="selectGameId"></button>
+                    </div>
                   </div>
                 </template>
               </main>
@@ -567,6 +580,13 @@
             <svg class="icon2" xmlns="http://www.w3.org/2000/svg">
               <use href="./images/icons.svg#icon_replay"></use>
             </svg>
+            <dialog class="dialogReplayCommit">
+              <div class="panelReplayCommit" data-last-bot-move="">
+                <p class="headerReplayRequest"></p>
+                <button class="confirmReplayRequest">CONFIRM</button>
+                <button class="cancelReplayRequest">CANCEL</button>
+              </div>
+            </dialog>
           </div>
         </div>
         <div class="sidebar sidebarBot">

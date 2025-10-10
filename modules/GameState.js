@@ -416,6 +416,13 @@ class BoardState {
   _waitForWebWorker;
 
   /**
+   * Holds the current live instance of the game board state with DOM relations.
+   * @static
+   * @type {BoardState}
+   */
+  static currentLiveInstance = null;
+
+  /**
    * Deserializes a plain object sent to the web worker and returns
    * the corresponding BoardState instance.
    * @static
@@ -561,8 +568,8 @@ class BoardState {
    * @param {GridCell} tgtCell
    * @returns {void}
    */
-  applyMoveAndTurn(srcCell, tgtCell) {
-    playMove(srcCell, tgtCell, this);
+  applyMoveAndTurn(srcCell, tgtCell, maxStackSize) {
+    playMove(srcCell, tgtCell, this, maxStackSize);
     switchPlayer(this.playerState);
   }
 

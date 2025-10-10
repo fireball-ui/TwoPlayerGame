@@ -4,7 +4,7 @@
  * @requires module:GameState
  */
 
-import { GridCell, BoardState, Sidebar, Move } from "./GameState.js";
+import { PLAYER_ID, GridCell, BoardState, Sidebar, Move } from "./GameState.js";
 import { checkWin } from "./GameLogic.js";
 import {
   dispatchWorker,
@@ -131,7 +131,11 @@ async function playUserMove(
     document.querySelector("#sectHome .board .mark")
   );
   // Play move, update BoardState, update Sidebar and turn player
-  domBoardState.applyMoveAndTurn(markedCell, clickedCell);
+  domBoardState.applyMoveAndTurn(
+    markedCell,
+    clickedCell,
+    settings.winningRules.settings.maxStackSize
+  );
   // await loggerWriter.update(
   //   new Move(markedCell, clickedCell, domBoardState.playerState)
   // );
@@ -149,7 +153,7 @@ async function playUserMove(
     await loggerWriter.update(
       new Move(markedCell, clickedCell, domBoardState.playerState)
     );
-    document.querySelector(".board").classList.add("filterGray");
+    document.querySelector("#sectHome .board").classList.add("filterGray");
     Sidebar.playerMap.get(playerUser).refreshDashboard();
   } else {
     await loggerWriter.update(
@@ -246,7 +250,11 @@ async function playBotMove(domBoardState, settings, aiWorker, loggerWriter) {
   await cssTransitionEnded(moveBotSrcInst.domEl, "select");
   await cssTransitionEnded(moveBotTgtInst.domEl, "hover");
   // apply move
-  domBoardState.applyMoveAndTurn(moveBotSrcInst, moveBotTgtInst);
+  domBoardState.applyMoveAndTurn(
+    moveBotSrcInst,
+    moveBotTgtInst,
+    settings.winningRules.settings.maxStackSize
+  );
   // await loggerWriter.update(
   //   new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
   // );
@@ -265,7 +273,7 @@ async function playBotMove(domBoardState, settings, aiWorker, loggerWriter) {
     await loggerWriter.update(
       new Move(moveBotSrcInst, moveBotTgtInst, domBoardState.playerState)
     );
-    document.querySelector(".board").classList.add("filterGray");
+    document.querySelector("#sectHome .board").classList.add("filterGray");
     Sidebar.playerMap.get(playerBot).refreshDashboard();
   } else {
     await loggerWriter.update(
@@ -279,6 +287,68 @@ async function playBotMove(domBoardState, settings, aiWorker, loggerWriter) {
   }
 }
 
+/**
+ * Resets the game state for all DOM elements, Event Handlers and instances.
+ * @param {BoardState} domBoardState
+ * @returns {void}
+ */
+function resetGame(domBoardState, loggerWriter) {
+  domBoardState.cells.forEach((cell) => {
+    cell.svgLayout = [];
+    cell.updateSvg();
+    cell.direction = 0;
+    cell.dot = false;
+  });
+  domBoardState.playerState.twoPlayer.forEach((player) => {
+    if (player.id === PLAYER_ID.BOT) {
+      player.turn = false;
+      Sidebar.playerMap.get(player).unmarkDashboard();
+    } else {
+      player.turn = true;
+      Sidebar.playerMap.get(player).markDashboard();
+    }
+    player.lastHorizontal = false;
+    player.safetyTower = 0;
+    player.vault.self = 0;
+    player.vault.opponent = 0;
+    player.winner = false;
+    Sidebar.playerMap.get(player).refreshDashboard();
+  });
+  domBoardState.cells
+    .filter((cell) => cell.row === 0)
+    .forEach((cell) => {
+      cell.svgLayout.push(PLAYER_ID.USER);
+      cell.direction = 1;
+      cell.updateSvg();
+    });
+  domBoardState.cells
+    .filter((cell) => cell.row === 1)
+    .forEach((cell) => {
+      cell.svgLayout.push(PLAYER_ID.USER);
+      cell.direction = 1;
+      cell.updateSvg();
+    });
+  domBoardState.cells
+    .filter((cell) => cell.row === 6 - 1)
+    .forEach((cell) => {
+      cell.svgLayout.push(PLAYER_ID.BOT);
+      cell.direction = -1;
+      cell.updateSvg();
+    });
+  domBoardState.cells
+    .filter((cell) => cell.row === 6 - 2)
+    .forEach((cell) => {
+      cell.svgLayout.push(PLAYER_ID.BOT);
+      cell.direction = -1;
+      cell.updateSvg();
+    });
+  enableBoardEvents(domBoardState);
+  document.querySelector("#sectHome .board").classList.remove("filterGray");
+  domBoardState.waitForWebWorker = false;
+  loggerWriter.gameId = Date.now();
+  loggerWriter.move = 0;
+}
+
 export {
   enableBoardEvents,
   handleHoveredCellIn,
@@ -286,4 +356,5 @@ export {
   prepareMoveForCell,
   discardMoveForCell,
   playUserMove,
+  resetGame,
 };

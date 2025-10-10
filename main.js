@@ -33,6 +33,7 @@ import {
   prepareMoveForCell,
   discardMoveForCell,
   playUserMove,
+  resetGame,
 } from "./modules/GameEventLoop.js";
 import {
   LoggerWriter,
@@ -43,7 +44,8 @@ import {
 import {
   loadGameHistoryMove,
   updateSvg,
-  dialogBtnEventHandler,
+  dialogSelectBtnEventHandler,
+  dialogCommitBtnEventHandler,
 } from "./modules/ReplayHistoryEventLoop.js";
 let aiWorker;
 let dbWorker;
@@ -126,9 +128,7 @@ function createBoard(domBoard) {
  * @throws {Error} If the parameters is invalid.
  */
 function createHistoryBoard(domBoardState) {
-  const historyBoard = document
-    .getElementById("sectReplayLogger")
-    .querySelector(".board");
+  const historyBoard = document.querySelector("#sectReplayLogger .board");
   const svg1 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg1.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   svg1.setAttribute("viewBox", "0 0 100 100");
@@ -177,68 +177,6 @@ function createPlayer() {
   twoPlayer.push(new Player(PLAYER_ID.USER, false, true));
   const playerState = new PlayerState(twoPlayer);
   return playerState;
-}
-
-/**
- * Resets the game state for all DOM elements, Event Handlers and instances.
- * @param {BoardState} domBoardState
- * @returns {void}
- */
-function resetGame(domBoardState, loggerWriter) {
-  domBoardState.cells.forEach((cell) => {
-    cell.svgLayout = [];
-    cell.updateSvg();
-    cell.direction = 0;
-    cell.dot = false;
-  });
-  domBoardState.playerState.twoPlayer.forEach((player) => {
-    if (player.id === PLAYER_ID.BOT) {
-      player.turn = false;
-      Sidebar.playerMap.get(player).unmarkDashboard();
-    } else {
-      player.turn = true;
-      Sidebar.playerMap.get(player).markDashboard();
-    }
-    player.lastHorizontal = false;
-    player.safetyTower = 0;
-    player.vault.self = 0;
-    player.vault.opponent = 0;
-    player.winner = false;
-    Sidebar.playerMap.get(player).refreshDashboard();
-  });
-  domBoardState.cells
-    .filter((cell) => cell.row === 0)
-    .forEach((cell) => {
-      cell.svgLayout.push(PLAYER_ID.USER);
-      cell.direction = 1;
-      cell.updateSvg();
-    });
-  domBoardState.cells
-    .filter((cell) => cell.row === 1)
-    .forEach((cell) => {
-      cell.svgLayout.push(PLAYER_ID.USER);
-      cell.direction = 1;
-      cell.updateSvg();
-    });
-  domBoardState.cells
-    .filter((cell) => cell.row === 6 - 1)
-    .forEach((cell) => {
-      cell.svgLayout.push(PLAYER_ID.BOT);
-      cell.direction = -1;
-      cell.updateSvg();
-    });
-  domBoardState.cells
-    .filter((cell) => cell.row === 6 - 2)
-    .forEach((cell) => {
-      cell.svgLayout.push(PLAYER_ID.BOT);
-      cell.direction = -1;
-      cell.updateSvg();
-    });
-  enableBoardEvents(domBoardState);
-  document.querySelector(".board").classList.remove("filterGray");
-  domBoardState.waitForWebWorker = false;
-  loggerWriter.gameId = Date.now();
-  loggerWriter.move = 0;
 }
 
 /**
@@ -418,6 +356,9 @@ function initRangeSlidersFromDb(settings, inputs, outputs) {
         case "opponentStones":
           input.value = String(settings.winningRules.settings.materialOpponent);
           break;
+        case "maxStackSize":
+          input.value = String(settings.winningRules.settings.maxStackSize);
+          break;
         case "searchDepth":
           input.value = String(settings.searchRules.settings.depth);
           break;
@@ -546,6 +487,9 @@ function initSettingsEventHandlers(settings) {
             case "opponentStones":
               newWinningRules.settings.materialOpponent = Number(input.value);
               break;
+            case "maxStackSize":
+              newWinningRules.settings.maxStackSize = Number(input.value);
+              break;
             case "searchDepth":
               newSearchRules.settings.depth = Number(input.value);
               break;
@@ -622,6 +566,22 @@ async function loadReplayLogger() {
         keys.forEach((key, _) => {
           reader.addPrimaryKey(key);
         });
+        //update scroll container item content for the game history properties
+        const lastLoggedMove = await reader.fetchRecord(Infinity);
+        reader.move = lastLoggedMove.move;
+        const bot = lastLoggedMove.boardState._playerState._twoPlayer.find(
+          (player) => player._id === PLAYER_ID.BOT
+        );
+        const user = lastLoggedMove.boardState._playerState._twoPlayer.find(
+          (player) => player._id === PLAYER_ID.USER
+        );
+        if (bot._winner === true) {
+          reader.winner = PLAYER_ID.BOT;
+        }
+        if (user._winner === true) {
+          reader.winner = PLAYER_ID.USER;
+        }
+        reader.updateScrollItemElements();
       }
     }
   } catch (error) {
@@ -666,23 +626,40 @@ async function initReplayLoggerEventHandlers() {
           await loadGameHistoryMove(Infinity);
         }
         if (gridItem.classList.contains("navbarUploadModal")) {
-          const dialogForGameReplay = gridItem.querySelector("dialog");
-          if (!dialogForGameReplay) {
+          const dialogForGameSelection =
+            gridItem.querySelector(".dialogUploadModal");
+          if (!dialogForGameSelection) {
             throw new Error("cannot relocate dialog element");
           }
-          dialogForGameReplay.showModal();
+          dialogForGameSelection.showModal();
+        }
+        if (gridItem.classList.contains("navbarReplayCommit")) {
+          const dialogForReplayCommit = gridItem.querySelector(
+            ".dialogReplayCommit"
+          );
+          if (!dialogForReplayCommit) {
+            throw new Error("cannot relocate dialog element");
+          }
+          dialogForReplayCommit.showModal();
         }
       } catch (error) {
         console.error(error.message);
       }
     });
     const gameReplayScrollContainer = document.querySelector(
-      "#sectReplayLogger .navbarUploadModal dialog main"
+      "#sectReplayLogger .navbarUploadModal .dialogUploadModal main"
     );
     if (!gameReplayScrollContainer) {
       throw new Error("cannot relocate scroll container for dialog element");
     }
-    gameReplayScrollContainer.addEventListener("click", dialogBtnEventHandler);
+    gameReplayScrollContainer.addEventListener(
+      "click",
+      dialogSelectBtnEventHandler
+    );
+    const replayCommitPanel = document.querySelector(
+      "#sectReplayLogger .navbarReplayCommit .dialogReplayCommit"
+    );
+    replayCommitPanel.addEventListener("click", dialogCommitBtnEventHandler);
   } catch (error) {
     console.error(error.message);
   }
@@ -699,8 +676,9 @@ window.addEventListener("load", async () => {
         "Web Workers are not supported in this browser. Please use a modern browser."
       );
     }
-    const domBoard = document.querySelector(".board");
+    const domBoard = document.querySelector("#sectHome .board");
     const domBoardState = createBoard(domBoard);
+    BoardState.currentLiveInstance = domBoardState;
     LoggerReader.initialDomBoardState = domBoardState.cloneInstance();
     LoggerReader.historyBoard = createHistoryBoard(domBoardState);
     LoggerReader.scrollItemTemplate = document.querySelector(
@@ -758,6 +736,7 @@ window.addEventListener("load", async () => {
     }
     const settings = new Settings(dbWorker);
     const loggerWriter = new LoggerWriter(domBoardState);
+    LoggerWriter.currentLiveInstance = loggerWriter;
     await loadSettings(settings);
     initSettingsEventHandlers(settings);
     await loadReplayLogger();

@@ -43,7 +43,7 @@
     /* The current snapped scroll item. 
        This is a html form element where you can adjust 
        the settings via input slider elements */
-    .panel {
+    & .panel {
       scroll-snap-align: center;
       width: inherit;
       height: inherit;
@@ -64,12 +64,24 @@
           var(--dark-tile-color2)
         );
       }
+      & .panelIntro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-width: 0;
+        width: 90%;
+        outline: medium groove
+          light-dark(var(--light-dot-color), var(--dark-dot-color));
+        border-style: solid;
+      }
       /* 
         Arrange the input slider and its label for the fieldset in column flex-flow.
         Place the output element to the right of the fieldset.
         Span the width of the fieldset 5 times bigger than the width of the output element.
       */
-      .slider {
+      & .slider {
         display: flex;
         flex-direction: row;
         justify-content: space-around;

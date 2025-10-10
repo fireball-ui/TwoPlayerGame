@@ -184,7 +184,11 @@ function minimax(boardState, depth, alpha, beta) {
           move[1].cloneInstance(),
           boardState.playerState.cloneInstance()
         );
-        boardState.applyMoveAndTurn(move[0], move[1]);
+        boardState.applyMoveAndTurn(
+          move[0],
+          move[1],
+          cachedSettingsState.winningRules.settings.maxStackSize
+        );
         const evaluate = minimax(boardState, depth + 1, alpha, beta);
         boardState.undoMove(loggedMove);
         max_eval = Math.max(max_eval, evaluate);
@@ -208,7 +212,11 @@ function minimax(boardState, depth, alpha, beta) {
           move[1].cloneInstance(),
           boardState.playerState.cloneInstance()
         );
-        boardState.applyMoveAndTurn(move[0], move[1]);
+        boardState.applyMoveAndTurn(
+          move[0],
+          move[1],
+          cachedSettingsState.winningRules.settings.maxStackSize
+        );
         const evaluate = minimax(boardState, depth + 1, alpha, beta);
         boardState.undoMove(loggedMove);
         min_eval = Math.min(min_eval, evaluate);
@@ -258,8 +266,22 @@ function findBestMove(boardState, settings) {
         move[1].cloneInstance(),
         boardState.playerState.cloneInstance()
       );
-      boardState.applyMoveAndTurn(move[0], move[1]);
+      boardState.applyMoveAndTurn(
+        move[0],
+        move[1],
+        cachedSettingsState.winningRules.settings.maxStackSize
+      );
       let score_for_this_move = minimax(boardState, 0, -Infinity, Infinity);
+      console.log(
+        "findBestMove " +
+          String(i) +
+          "#srcCell " +
+          move[0].id +
+          " tgtCell " +
+          move[1].id +
+          " score: " +
+          score_for_this_move
+      );
       boardState.undoMove(loggedMove);
       if (score_for_this_move > best_score) {
         best_score = score_for_this_move;

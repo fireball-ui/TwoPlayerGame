@@ -12,6 +12,8 @@ import {
   workerMessageScheme,
   handleResponse,
 } from "./AsyncAPIWrapper.js";
+import { PLAYER_ID } from "./GameState.js";
+
 const LOGGER_DB_ITEMS = Object.freeze({
   OBJECT_STORE: "ReplayLog",
   KEY_PATH: "id",
@@ -87,6 +89,13 @@ class LoggerWriter {
    * @type {Worker}
    */
   static dbWorker;
+
+  /**
+   * Holds the current live instance of the LoggerWriter related to the active board in the dom.
+   * @static
+   * @type {LoggerWriter}
+   */
+  static currentLiveInstance = null;
 
   /**
    * Creates a new LoggerWriter instance.
@@ -236,6 +245,19 @@ class LoggerWriter {
       handleResponse(workerResponse);
       const reader = LoggerReader.instances.get(this._gameId);
       reader.addPrimaryKey(key);
+      reader.move = this._move;
+      const bot = this._boardState.playerState.twoPlayer.find(
+        (player) => player.id === PLAYER_ID.BOT
+      );
+      const user = this._boardState.playerState.twoPlayer.find(
+        (player) => player.id === PLAYER_ID.USER
+      );
+      if (bot.winner === true) {
+        reader.winner = PLAYER_ID.BOT;
+      }
+      if (user.winner === true) {
+        reader.winner = PLAYER_ID.USER;
+      }
       reader.updateScrollItemElements();
     } catch (error) {
       console.log("error logger update: " + error);
@@ -323,13 +345,13 @@ class LoggerReader {
           reader.generator.return();
           reader.generator = null;
         }
-        reader._scrollItem.remove();
-        reader._scrollItem = null;
+        reader.scrollItem.remove();
+        reader.scrollItem = null;
         reader = null;
         LoggerReader.instances.delete(gameId);
       }
     } catch (error) {
-      console.log("error logger reader dispose: " + error);
+      console.log("error logger reader dispose: " + error.message);
       throw new Error(error.toString());
     }
   }
@@ -462,9 +484,10 @@ class LoggerReader {
   updateScrollItemElements() {
     this._scrollItem.setAttribute("data-db-key", String(this._gameId));
     this._scrollItem.querySelector(".headerCaption").innerText =
-      "view and replay this game";
+      "view and replay this game history";
+    const startDate = new Date(this._gameId);
     this._scrollItem.querySelector(".gameStarted").innerText =
-      "started: " + this._gameId.toString();
+      "started: " + startDate.toISOString();
     this._scrollItem.querySelector(".totalMoves").innerText =
       "total moves: " + String(this._move);
     this._scrollItem.querySelector(".winnerIs").innerText =
@@ -548,7 +571,9 @@ class LoggerReader {
       }
       return result.value;
     } catch (error) {
-      throw new Error("error caught in fetchRecord: " + error.toString());
+      throw new Error(
+        "error caught in fetchRecord: " + error.message.toString()
+      );
     }
   }
 }

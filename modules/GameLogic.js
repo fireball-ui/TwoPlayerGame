@@ -39,11 +39,11 @@ import {
  * @param {BoardState} boardState
  * @returns {void}
  */
-function playMove(srcInst, tgtInst, boardState) {
+function playMove(srcInst, tgtInst, boardState, maxStackSize) {
   const player = boardState.playerState.twoPlayer.find(
     (player) => player.turn === true
   );
-  stackTowers(srcInst, tgtInst, player);
+  stackTowers(srcInst, tgtInst, player, maxStackSize);
   tgtInst.direction = srcInst.direction;
   tgtInst.dot = srcInst.dot;
   if (
@@ -51,7 +51,7 @@ function playMove(srcInst, tgtInst, boardState) {
     tgtInst.row === 5 &&
     srcInst.dot === false
   ) {
-    tgtInst.direction = -tgtInst.direction;
+    tgtInst.direction *= -1;
     tgtInst.dot = true;
   }
   if (
@@ -59,7 +59,7 @@ function playMove(srcInst, tgtInst, boardState) {
     tgtInst.row === 0 &&
     srcInst.dot === false
   ) {
-    tgtInst.direction = -tgtInst.direction;
+    tgtInst.direction *= -1;
     tgtInst.dot = true;
   }
   if (
@@ -177,32 +177,37 @@ function getAllPossibleMoves(boardState, player) {
  * @param {Player} player - The Player that makes this move.
  * @returns {void}
  */
-function stackTowers(srcCell, tgtCell, player) {
-  if (srcCell.svgLayout.length === 0) {
-    throw new Error("source cell has no tower");
-  }
-  if (tgtCell.svgLayout.length === 0) {
-    tgtCell.svgLayout = [...srcCell.svgLayout];
-    return;
-  }
-  if (srcCell.svgLayout.at(-1) !== tgtCell.svgLayout.at(-1)) {
-    for (let i = 0, len = srcCell.svgLayout.length; i < len; i++) {
-      tgtCell.svgLayout.push(srcCell.svgLayout[i]);
-      if (tgtCell.svgLayout.length > 3) {
-        let selfVal = player.vault.self;
-        let opponentVal = player.vault.opponent;
-        if (tgtCell.svgLayout.at(0) === player.id) {
-          selfVal += 1;
-        } else {
-          opponentVal += 1;
-        }
-        player.vault = { self: selfVal, opponent: opponentVal };
-        tgtCell.svgLayout.shift();
-      }
+function stackTowers(srcCell, tgtCell, player, maxStackSize) {
+  try {
+    if (srcCell.svgLayout.length === 0) {
+      throw new Error("source cell has no tower");
     }
-    return;
+    if (tgtCell.svgLayout.length === 0) {
+      tgtCell.svgLayout = [...srcCell.svgLayout];
+      return;
+    }
+    if (srcCell.svgLayout.at(-1) !== tgtCell.svgLayout.at(-1)) {
+      for (let i = 0, len = srcCell.svgLayout.length; i < len; i++) {
+        tgtCell.svgLayout.push(srcCell.svgLayout[i]);
+        if (tgtCell.svgLayout.length > maxStackSize) {
+          let selfVal = player.vault.self;
+          let opponentVal = player.vault.opponent;
+          if (tgtCell.svgLayout.at(0) === player.id) {
+            selfVal += 1;
+          } else {
+            opponentVal += 1;
+          }
+          player.vault = { self: selfVal, opponent: opponentVal };
+          tgtCell.svgLayout.shift();
+        }
+      }
+      return;
+    } else {
+      throw new Error("cannot stack towers of the same player");
+    }
+  } catch (error) {
+    console.error(error.message);
   }
-  throw new Error("cannot stack towers of the same player");
 }
 
 /**
@@ -247,6 +252,13 @@ function checkWin(boardState, player, settings) {
     (cell) => cell.svgLayout.at(-1) === opponent.id
   );
   if (!opponentTower || opponentTower === null) {
+    player.winner = true;
+    return true;
+  }
+  const owningTower = boardState.cells.find(
+    (cell) => cell.svgLayout.at(-1) === player.id
+  );
+  if (!owningTower || owningTower === null) {
     player.winner = true;
     return true;
   }
